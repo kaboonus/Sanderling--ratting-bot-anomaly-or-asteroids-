@@ -1,20 +1,25 @@
 /*
 
 This bot rats anomaly and/or asteroids; warp to asteroids at 30km+; anomaly at 50km;
--orbit at  distance (W + click) or around selected rat.A lternatively,  by overview menu at max 30 km ...I let the code there.
+-orbit at  distance (W + click) or around selected rat. Alternatively,  by overview menu at max 30 km ...I let the code there.
 - run from reds
 -activate /stop armor repairer automaticaly 
 -activate afterburner
 take the rats in order
 Set your own tab for combat pve
+- the symbol ♦ is from drifters ; they appear in hordes near stations and asteroids
 examples:
 
 AnomalyToIgnore = "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den",// what anomaly to ignore" in takeanomaly void; avoid anomaly haven with celestialtoavoid
 DB: "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den",// what anomaly to ignore
 run from reds on site( if chatlocal fails is good)
-To Do:
-
- wrecks - inventory open and check offload
+###################
+problems ?? improvements ?? :
+dunno yet if ignore the anomalyes with friends inside ( when you enter in site and if ignore later)
+runFromRats/reds - not tested yet
+loot wrecks - not tested yet (in a-bot is working)
+to do:
+- improve the code to warp at asteroids ( with measurements and conditions)
 */
 
 using BotSharp.ToScript.Extension;
@@ -25,7 +30,7 @@ using MemoryStruct = Sanderling.Interface.MemoryStruct;
 
 var RetreatOnNeutralOrHostileInLocal = true;   // warp to RetreatBookmark when a neutral or hostile is visible in local.
 var RattingAnomaly = true;	//	when this is set to true, you take anomaly
-var RattingAsteroids = true;	//	when this is set to true, you take asteroids
+var RattingAsteroids = false;	//	when this is set to true, you take asteroids
 
 
 /////settings anomaly
@@ -34,12 +39,16 @@ string AnomalyToTake = "forsaken hub"; // his name , ex:  "forsaken hub"  " comb
 string IgnoreAnomalyName = "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den";// what anomaly to ignore
 string IgnoreColumnheader = "Name";//the head  of anomaly to ignore
 // you have to run from this rats:
-string runFromRats = "Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
+string runFromRats = "♦|Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
 
 //celestial to orbit
 string celestialOrbit = "broken|pirate gate|wreck";
 
 string CelestialToAvoid = "Chemical Factory"; // this one make difference between haven rock and gas
+// wrecks commander etc
+string commanderNameWreck = "Commander|Dark Blood|true|Shadow Serpentis|Dread Gurista|Domination Saint|Gurista Distributor|Sentient|Overseer|Spearhead|Dread Guristas|Estamel|Vepas|Thon|Kaikka|True Sansha|Chelm|Vizan|Selynne|Brokara|Dark Blood|Draclira|Ahremen|Raysere|Tairei|Cormack|Setele|Tuvan|Brynn|Domination|Tobias|Gotan|Hakim|Mizuro|wreck";
+
+
 ////////
 
 int DroneNumber = 5;// set number of drones in space
@@ -77,7 +86,7 @@ Queue<string> visitedLocations = new Queue<string>();
 	var orbitKeyCode = (VirtualKeyCode)'W';
 
 var attackDrones = VirtualKeyCode.VK_F;
-
+var EnterOffloadOreHoldFillPercent = 85;	//	percentage of ore hold fill level at which to enter the offload process.
 
 const string StatusStringFromDroneEntryTextRegexPattern = @"\((.*)\)";				
 static public string StatusStringFromDroneEntryText(this string droneEntryText) =>droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
@@ -149,6 +158,7 @@ bool	DefenseExit =>
 
 bool	DefenseEnter =>
 	!DefenseExit	;
+bool	OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
 
 string RetreatReasonTemporary = null;
 string RetreatReasonPermanent = null;
@@ -159,8 +169,7 @@ int OffloadCount = 0;
 
 Func<object>	MainStep()
 {
-var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
-	var scanResultCombatSite = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
+
 Host.Log("enter mainstep");
 	if(Measurement?.IsDocked ?? false)
 	{		
@@ -184,7 +193,13 @@ Host.Log("enter mainstep");
 		Host.Log("drones in space 0 going to asteroids or anomaly");
 			if(ReadyForManeuver)
 			{
-				if ((RattingAnomaly ) && (null != scanResultCombatSite))
+				if(OreHoldFilledForOffload )
+				{
+				if(ReadyForManeuver)
+					ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
+				return MainStep;
+				}
+				if (RattingAnomaly ) 
 				{Host.Log("I have anomaly??");
 					return TakeAnomaly;
 				}
@@ -365,6 +380,8 @@ Func<object>	DefenseStep()
 
 Func<object> InBeltMineStep()
 {	
+	var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
+				
 	if ((listOverviewEntryFriends.Length != 0) && ListCelestialObjects?.Length > 0)
 	{if (ShipManeuverStatus != ShipManeuverTypeEnum.Orbit)
 		{	Sanderling.KeyboardPressCombined(new[]{ VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });			
@@ -384,6 +401,13 @@ Func<object> InBeltMineStep()
 	}
 
 	EnsureWindowInventoryOpenActiveShip();
+			if ((0 ==ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck.Length > 0))
+			{
+			if (LootButton != null)
+				Sanderling.MouseClickLeft(LootButton);
+			if ( listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax < 1200)
+				ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
+			}
 	if ((0 ==ListRatOverviewEntry?.Length) || (0 != listOverviewDreadCheck?.Length ))
 	{
 		Host.Log("return to main step");
@@ -426,6 +450,20 @@ Sanderling.Parse.IWindowInventory	WindowInventory	=>
 
 IWindowDroneView	WindowDrones	=>
 	Measurement?.WindowDroneView?.FirstOrDefault();
+	
+				
+
+				var inventoryActiveShip = WindowInventory?.ActiveShipEntry;
+				var inventoryActiveShipEntry = WindowInventory?.ActiveShipEntry;
+				var ShipHasHold = inventoryActiveShipEntry?.TreeEntryFromCargoSpaceType(ShipCargoSpaceTypeEnum.General) != null;
+				var hasHold = ShipHasHold;
+				ITreeViewEntry InventoryActiveShipContainer = WindowInventory?.ActiveShipEntry?.TreeEntryFromCargoSpaceType(
+								hasHold ? ShipCargoSpaceTypeEnum.General : ShipCargoSpaceTypeEnum.General);
+
+				var OreHoldCapacityMilli = (InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
+
+				int? OreHoldFillPercent = (int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max);
+
 
 
 
@@ -471,7 +509,12 @@ EWarTypeEnum[] listEWarPriorityGroupTeamplate =
 Parse.IOverviewEntry[] EWarToAttack =>
 	WindowOverview?.ListView?.Entry?
 		.Where(entry => entry != null && (!entry.EWarType?.IsNullOrEmpty() ?? false) &&  listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
-		?.ToArray();	
+		?.ToArray();
+Parse.IOverviewEntry[] listOverviewCommanderWreck => 
+	WindowOverview?.ListView?.Entry
+	?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(commanderNameWreck) ?? true)
+	?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+	.ToArray();		
 	
 DroneViewEntryGroup DronesInBayListEntry =>
 	WindowDrones?.ListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(Entry => null != Entry?.Caption?.Text?.RegexMatchIfSuccess(@"Drones in bay", RegexOptions.IgnoreCase));
