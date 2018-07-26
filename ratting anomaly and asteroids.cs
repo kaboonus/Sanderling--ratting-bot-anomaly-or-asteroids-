@@ -334,7 +334,7 @@ Func<object>	DefenseStep()
 		Sanderling.KeyboardPress(attackDrones);
 		Host.Log("engage target");
 		}
-	if (EWarToAttack.Count() > 0)//thx pikacuq
+	if (EWarToAttack?.Length > 0)//thx pikacuq
 	{
 
 
@@ -435,11 +435,11 @@ string OverviewTypeSelectionName =>
 Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.Where(entry =>
 		(entry?.MainIconIsRed ?? false)	)
 						//  ?.OrderBy(entry => .AttackPriorityIndex(entry))
-				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider")) //Frigate
-				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii")) //Frigate
+				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate
+				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
 				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
-				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum")) //Cruiser
-				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelatis|centatis|alvatis|pithatis|copatis|gistatis")) //Battlecruiser
+				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum|prophet")) //Cruiser
+				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelatis|centatis|alvatis|pithatis|copatis|gistatis|apostle")) //Battlecruiser
 				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"core\s|centus|alvus|pith\s|corpus|gist\s")) //Battleship
 				?.ThenBy(entry => entry?.DistanceMax ?? int.MaxValue)						 
 				?.ToArray();	
@@ -628,7 +628,7 @@ var menuResult = Measurement?.Menu?.ElementAtOrDefault(2);
 	var menuResultWarpDestination = menuResultats?.Entry.ToArray();
 
 		Host.Log("initiating  warp on '" + destinationMenuEntry?.Text + "'");
-	ClickMenuEntryOnMenuRoot(menuResultWarpDestination[3], "within 30 km");
+	ClickMenuEntryOnMenuRoot(menuResultWarpDestination[2], "within 20 km");
 		Host.Log("no suitable menu entry found on '" + destinationMenuEntry?.Text + "'");
 	return true;
 }
