@@ -113,44 +113,43 @@ Func<object> NextActivity = MainStep;
 for(;;)
 {
 
-    MemoryUpdate();
+MemoryUpdate();
 
 Host.Log(
+	" ; shield.hp: " + ShieldHpPercent + "%" +
+	" ; armor.hp: " + ArmorHpPercent + "%" +
+	" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy)-1)+ " # "  + RetreatReason + 
+	" ; overview.rats: " + ListRatOverviewEntry?.Length +
+	" ; drones in space: " + DronesInSpaceCount +
+	" ; targeted rats :  " + Measurement?.Target?.Length+
+	" ; anchors : "  + ListCelestialObjects?.Length  +
+	" ; cargo percent  " + OreHoldFillPercent +
+	" ; offload count: " + OffloadCount + // just for test
+	" ; nextAct: " + NextActivity?.Method?.Name);
 
-		" ; shield.hp: " + ShieldHpPercent + "%" +
-		" ; armor.hp: " + ArmorHpPercent + "%" +
-		" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy)-1)+ " # "  + RetreatReason + 
-		" ; overview.rats: " + ListRatOverviewEntry?.Length +
-		" ; drones in space: " + DronesInSpaceCount +
-		" ; targeted rats :  " + Measurement?.Target?.Length+
-		" ; anchors : "  + ListCelestialObjects?.Length  +
-		" ; cargo percent  " + OreHoldFillPercent +
-		" ; offload count: " + OffloadCount + // just for test
-		" ; nextAct: " + NextActivity?.Method?.Name);
+CloseModalUIElement();
 
-    CloseModalUIElement();
+if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
+{
+	Host.Log("retreat ????");
+	if ((returnDronesToBayOnRetreat)  && (0 != DronesInSpaceCount))	{ DroneEnsureInBay();}
 
-	if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
+	if (!returnDronesToBayOnRetreat || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
 	{
-		Host.Log("retreat ????");
-		if ((returnDronesToBayOnRetreat)  && (0 != DronesInSpaceCount))	{ DroneEnsureInBay();}
-
-		if (!returnDronesToBayOnRetreat || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
-		{
-		Host.Log("Yes, I have a reason");
-        ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, RetreatBookmark, "dock");
-		}
-		continue;
+	Host.Log("Yes, I have a reason");
+	ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, RetreatBookmark, "dock");
 	}
-	if(Measurement?.WindowOther != null) CloseWindowOther();
-	if(Measurement?.WindowTelecom != null) CloseWindowTelecom();
+	continue;
+}
+if(Measurement?.WindowOther != null) CloseWindowOther();
+if(Measurement?.WindowTelecom != null) CloseWindowTelecom();
 NextActivity = NextActivity?.Invoke() as Func<object>;
 
-	if(BotStopActivity == NextActivity)
-		break;	
-	if(null == NextActivity)
-		NextActivity = MainStep;
-	Host.Delay(1111);
+if(BotStopActivity == NextActivity)
+	break;	
+if(null == NextActivity)
+	NextActivity = MainStep;
+Host.Delay(1111);
 }
 
 int? ShieldHpPercent => ShipUi?.HitpointsAndEnergy?.Shield / 10;
@@ -173,7 +172,6 @@ int OffloadCount = 0;
 bool OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
 Func<object> MainStep()
 {
-
     Host.Log("enter mainstep");
     if (Measurement?.IsDocked ?? false)
     {
@@ -226,7 +224,6 @@ Func<object> MainStep()
 
     if (ActivateHardener)
         ActivateHardenerExecute();
-
     return InBeltMineStep;
 }
 
