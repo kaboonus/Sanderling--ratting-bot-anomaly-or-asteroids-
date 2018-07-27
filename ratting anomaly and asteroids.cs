@@ -1,30 +1,31 @@
-/*
+/*This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
+- orbit at distance (W + click) or around selected rat. Alternatively, by overview menu at max 30 km ...I let the code there.
+- run from reds
+- activate /stop Armor repairer automatically 
+- activate afterburner
+- take the rats in order
+- Loot wrecks – all, when cargo isn’t almost full; when is full, warp home
+- When are hostiles in local, warp “home”( for now, make your window biggest possible)
+-The Commanders or officers are already in commanderNameWreck ( + wrecks, to take all loot)
+
+Set your own tab for combat pve
+- The symbol ♦ is from drifters; they appear in hordes near stations and asteroids
+
+###################
+Testing :
+Don’t know yet if ignore the anomalies with friends inside (when you enter in site and if ignore or not later when you are the owner)
+RunFromRats/reds - not tested yet
+
+To do:
+-	Improve the code to warp at asteroids (with measurements and conditions)
+-	I have to do someting with local chat when is scrollable
+###################
 Thx to:
 Viir
 Terpla
 pikacuq
 the others from https://forum.botengine.org/ who contribued with or without their ideas /knowledges /code lines to create this bot/script.
-Anyone can improve him, or take parts of him and use in same 
-This bot rats anomaly and/or asteroids; warp to asteroids at 30km+; anomaly at 50km;
--orbit at  distance (W + click) or around selected rat. Alternatively,  by overview menu at max 30 km ...I let the code there.
-- run from reds
--activate /stop armor repairer automaticaly 
--activate afterburner
-take the rats in order
-Set your own tab for combat pve
-- the symbol ♦ is from drifters ; they appear in hordes near stations and asteroids
-examples:
 
-AnomalyToIgnore = "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den",// what anomaly to ignore" in takeanomaly void; avoid anomaly haven with celestialtoavoid
-DB: "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den",// what anomaly to ignore
-run from reds on site( if chatlocal fails is good)
-###################
-problems ?? improvements ?? :
-dunno yet if ignore the anomalyes with friends inside ( when you enter in site and if ignore later)
-runFromRats/reds - not tested yet
-loot wrecks - not tested yet (in a-bot is working)
-to do:
-- improve the code to warp at asteroids ( with measurements and conditions)
 */
 
 using BotSharp.ToScript.Extension;
@@ -65,16 +66,16 @@ var ActivateArmorRepairer = false;
 
 //	warpout emergency armor
 
-var EmergencyWarpOutHitpointPercent = 40; // just in case, when you warp on emergensy
+var EmergencyWarpOutHitpointPercent = 40; // just in case, when you warp on emergency
 var StartArmorRepairerHitPoints = 95; // armor value in % , when it starts armor repairer
 
 
 
 //	Bookmark of location where ore should be unloaded.
-string UnloadBookmark = "home"; //suposed your bookmark is named home
+string UnloadBookmark = "home"; //supposed your bookmark is named home
 
 //	Name of the container to unload to as shown in inventory.
-string UnloadDestContainerName = "Item Hangar"; //suposed it is Item Hangar
+string UnloadDestContainerName = "Item Hangar"; //supposed it is Item Hangar
 
 
 //	Bookmark of place to retreat to to prevent ship loss.
@@ -84,14 +85,15 @@ string RetreatBookmark = UnloadBookmark;
 Queue<string> visitedLocations = new Queue<string>();
 
 //diverses
-	var lockTargetKeyCode = VirtualKeyCode.LCONTROL;// lock target
+var lockTargetKeyCode = VirtualKeyCode.LCONTROL;// lock target
 
-	var targetLockedKeyCode = VirtualKeyCode.SHIFT;//locked target
+var targetLockedKeyCode = VirtualKeyCode.SHIFT;//locked target
 
-	var orbitKeyCode = (VirtualKeyCode)'W';
+var orbitKeyCode = (VirtualKeyCode)'W';
 
 var attackDrones = VirtualKeyCode.VK_F;
-var EnterOffloadOreHoldFillPercent = 85;	//	percentage of ore hold fill level at which to enter the offload process.
+
+var EnterOffloadOreHoldFillPercent = 85;	//	percentage of ore hold fill level at which to enter the offload process and warp home.
 
 const string StatusStringFromDroneEntryTextRegexPattern = @"\((.*)\)";				
 static public string StatusStringFromDroneEntryText(this string droneEntryText) =>droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
@@ -253,7 +255,7 @@ void CloseWindowTelecom()
 	if (CloseButton != null)
 		Sanderling.MouseClickLeft(CloseButton);
 }
-public void CloseWindowOther()
+public void CloseWindowOther()//txk Terpla
 {
     Host.Log("close WindowOther");
     var windowOther = Sanderling?.MemoryMeasurementParsed?.Value?.WindowOther?.FirstOrDefault();
@@ -292,7 +294,7 @@ void DroneReturnToBay()
 	Host.Log("return drones to bay.");
 	Sanderling.MouseClickRight(DronesInSpaceListEntry);
 	Sanderling.MouseClickLeft(Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("return.*bay", RegexOptions.IgnoreCase));
-	// Sanderling.KeyboardPressCombined(new[]{ targetLockedKeyCode, VirtualKeyCode.VK_R });
+	// Sanderling.KeyboardPressCombined(new[]{ targetLockedKeyCode, VirtualKeyCode.VK_R });//if you like 
 }
 
 var ShipManeuverStatus = Measurement.ShipUi?.Indication?.ManeuverType;
@@ -503,7 +505,7 @@ string OverviewTypeSelectionName =>
 
 Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.Where(entry =>
 		(entry?.MainIconIsRed ?? false)	)
-						//  ?.OrderBy(entry => .AttackPriorityIndex(entry))
+				
 				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate
 				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
 				?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
@@ -607,7 +609,7 @@ void EnsureWindowInventoryOpenActiveShip()
 }
 
 
-//	sample label text: Intensive Reprocessing Array <color=#66FFFFFF>1,123 m</color //bla bla??
+//	sample label text: Intensive Reprocessing Array <color=#66FFFFFF>1,123 m</color //
 string InventoryContainerLabelRegexPatternFromContainerName(string containerName) =>
 	@"^\s*" + Regex.Escape(containerName) + @"\s*($|\<)";
 
@@ -626,7 +628,7 @@ void InInventoryUnloadItemsTo(string DestinationContainerName)
 		var oreHoldItem = oreHoldListItem?.FirstOrDefault();
 
 		if(null == oreHoldItem)
-			break;    //    0 items in OreHold
+			break;    //    0 items in Cargo
 
 		if(1 < oreHoldListItem?.Length)
 			ClickMenuEntryOnMenuRoot(oreHoldItem, @"select\s*all");
@@ -902,7 +904,7 @@ void UpdateLocationRecord()
 		visitedLocations.Dequeue();
 }
 
-// Orbit asteroid at 10km  Orbit("Crokite") will orbit first asteroid named Crokite at 10 km, stolen from forum :d
+// Orbit asteroid at 30km  Orbit("Crokite") will orbit first asteroid named Crokite at 10 km, stolen from forum :d
 void Orbit(string whatToOrbit,string distance="30 km")
 {
 var ToOrbit=Measurement?.WindowOverview?.FirstOrDefault()?.ListView?.Entry?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(whatToOrbit) ?? false)?.ToArray();
@@ -940,6 +942,7 @@ var UndesiredAnomaly = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault
 var scanResultCombatSite = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
 				
 Host.Log("take anomaly start");
+
 if (probeScannerWindow == null)
 	Sanderling.KeyboardPressCombined(new[]{ VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
 if (null != scanActuallyAnomaly)
