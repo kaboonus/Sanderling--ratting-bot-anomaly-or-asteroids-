@@ -384,9 +384,7 @@ Func<object> InBeltMineStep()
 {
     var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
 
-    if ((listOverviewEntryFriends.Length != 0) && ListCelestialObjects?.Length > 0)
-    {
-        if (ShipManeuverStatus != ShipManeuverTypeEnum.Orbit)
+    if ((listOverviewEntryFriends.Length != 0) && ListCelestialObjects?.Length > 0 && ListCelestialToAvoid?.Length>0)
         {
             Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
             return TakeAnomaly;
@@ -474,7 +472,7 @@ string OverviewTypeSelectionName =>
 
 Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.Where(entry =>
     (entry?.MainIconIsRed ?? false))
-    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate other than anomaly
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum|prophet")) //Cruiser
@@ -482,10 +480,17 @@ Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"core\s|centus|alvus|pith\s|corpus|gist\s")) //Battleship
     ?.ThenBy(entry => entry?.DistanceMax ?? int.MaxValue)
     ?.ToArray();
+	
 Parse.IOverviewEntry[] ListCelestialObjects => WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(celestialOrbit) ?? false)
     ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
     ?.ToArray();
+	
+Parse.IOverviewEntry[] ListCelestialToAvoid => WindowOverview?.ListView?.Entry
+    ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(CelestialToAvoid ) ?? false)
+    ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+    ?.ToArray();
+	
 
 Parse.IOverviewEntry[] listOverviewDreadCheck => WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccess(runFromRats) ?? true)
@@ -509,8 +514,10 @@ EWarTypeEnum[] listEWarPriorityGroupTeamplate =
 
 Parse.IOverviewEntry[] EWarToAttack =>
     WindowOverview?.ListView?.Entry?
-        .Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) && listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
-        ?.ToArray();
+	.Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) && listEWarPriorityGroupTeamplate.Intersect(entry?.EWarType).Any())
+	?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+	?.ToArray();
+	
 Parse.IOverviewEntry[] listOverviewCommanderWreck =>
     WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(commanderNameWreck) ?? true)
