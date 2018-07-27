@@ -375,7 +375,7 @@ Func<object>	DefenseStep()
 	{
 
 
-		var EWarSelected = EWarToAttack.FirstOrDefault(target => target?.IsSelected ?? false);
+		var EWarSelected = EWarToAttack?.FirstOrDefault(target => target?.IsSelected ?? false);
 		var EWarLocked = EWarToAttack?.FirstOrDefault(target => target?.MeTargeted ?? false);
 
 		if (EWarLocked == null)
@@ -539,7 +539,7 @@ EWarTypeEnum[] listEWarPriorityGroupTeamplate =
 
 Parse.IOverviewEntry[] EWarToAttack =>
 	WindowOverview?.ListView?.Entry?
-		.Where(entry => entry != null && (!entry.EWarType?.IsNullOrEmpty() ?? false) &&  listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
+		.Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) &&  listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
 		?.ToArray();
 Parse.IOverviewEntry[] listOverviewCommanderWreck => 
 	WindowOverview?.ListView?.Entry
