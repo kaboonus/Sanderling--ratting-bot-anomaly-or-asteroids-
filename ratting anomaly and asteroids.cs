@@ -126,8 +126,8 @@ for(;;)
 		" ; nextAct: " + NextActivity?.Method?.Name);
 
 	CloseModalUIElement();
-	CloseWindowTelecom();
-	CloseWindowOther();
+
+
 
 	if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 	{
@@ -145,7 +145,8 @@ for(;;)
 		}
 		continue;
 	}
-	if(Measurement.WindowOther != null) CloseWindowOther();
+	if(Measurement?.WindowOther != null) CloseWindowOther();
+	if(Measurement?.WindowTelecom != null) CloseWindowTelecom();
 	NextActivity = NextActivity?.Invoke() as Func<object>;
 
 	if(BotStopActivity == NextActivity)
@@ -182,6 +183,7 @@ Func<object>	MainStep()
 Host.Log("enter mainstep");
 	if(Measurement?.IsDocked ?? false)
 	{		
+		
 		InInventoryUnloadItems();
 
 		if (0 < RetreatReasonPermanent?.Length)
