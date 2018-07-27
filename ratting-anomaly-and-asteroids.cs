@@ -389,7 +389,7 @@ Func<object> InBeltMineStep()
             Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
             return TakeAnomaly;
         }
-    }
+    
     if ((ReadyForManeuver) && (ShipManeuverStatus != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
     {
         Orbitkeyboard();
