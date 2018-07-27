@@ -1,5 +1,10 @@
 /*
-
+Thx to:
+Viir
+Terpla
+pikacuq
+the others from https://forum.botengine.org/ who contribued with or without their ideas /knowledges /code lines to create this bot/script.
+Anyone can improve him, or take parts of him and use in same 
 This bot rats anomaly and/or asteroids; warp to asteroids at 30km+; anomaly at 50km;
 -orbit at  distance (W + click) or around selected rat. Alternatively,  by overview menu at max 30 km ...I let the code there.
 - run from reds
@@ -116,9 +121,13 @@ for(;;)
 		" ; drones in space: " + DronesInSpaceCount +
 		" ; targeted rats :  " + Measurement?.Target?.Length+
 		" ; anchors : "  + ListCelestialObjects?.Length  +
+		" ; cargo percent  " + OreHoldFillPercent +
+		" ; offload count: " + OffloadCount + // just for test
 		" ; nextAct: " + NextActivity?.Method?.Name);
 
 	CloseModalUIElement();
+	CloseWindowTelecom();
+	CloseWindowOther();
 
 	if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 	{
@@ -158,7 +167,7 @@ bool	DefenseExit =>
 
 bool	DefenseEnter =>
 	!DefenseExit	;
-bool	OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
+
 
 string RetreatReasonTemporary = null;
 string RetreatReasonPermanent = null;
@@ -166,7 +175,7 @@ string RetreatReason => RetreatReasonPermanent ?? RetreatReasonTemporary;
 int? LastCheckOreHoldFillPercent = null;
 
 int OffloadCount = 0;
-
+bool	OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
 Func<object>	MainStep()
 {
 
@@ -191,14 +200,18 @@ Host.Log("enter mainstep");
 		if( 0 == DronesInSpaceCount && 0 ==ListRatOverviewEntry?.Length)
 		{
 		Host.Log("drones in space 0 going to asteroids or anomaly");
+
 			if(ReadyForManeuver)
 			{
 				if(OreHoldFilledForOffload )
 				{
-				if(ReadyForManeuver)
 					ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
 				return MainStep;
 				}
+				
+				if ((!OreHoldFilledForOffload )&&(0 ==ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck.Length > 0) && (ListCelestialObjects?.Length > 0) )
+				return InBeltMineStep;
+			
 				if (RattingAnomaly ) 
 				{Host.Log("I have anomaly??");
 					return TakeAnomaly;
@@ -231,17 +244,24 @@ void CloseModalUIElement()
 		ModalUIElement?.ButtonText?.FirstOrDefault(button => (button?.Text).RegexMatchSuccessIgnoreCase("close|no|ok"));		
 	Sanderling.MouseClickLeft(ButtonClose);
 }
+void CloseWindowTelecom()
+{
+	var WindowTelecom = Measurement?.WindowTelecom?.FirstOrDefault(w => (w?.Caption.RegexMatchSuccessIgnoreCase("Information") ?? false));
+	var CloseButton = WindowTelecom?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Close"));
+	if (CloseButton != null)
+		Sanderling.MouseClickLeft(CloseButton);
+}
 public void CloseWindowOther()
 {
     Host.Log("close WindowOther");
     var windowOther = Sanderling?.MemoryMeasurementParsed?.Value?.WindowOther?.FirstOrDefault();
 
     //	if close button not visible then move mouse to the our window
-    if (!windowOther.HeaderButtonsVisible ?? false)
+    if (!windowOther?.HeaderButtonsVisible ?? false)
         Sanderling.MouseMove(windowOther.LabelText.FirstOrDefault());
 
     Sanderling.InvalidateMeasurement(); //	make sure we have new measurement
-    if (windowOther.HeaderButton != null)
+    if (windowOther?.HeaderButton != null)
     {
         //	we have 3 buttons and looking with HintText "Close"
         var closeButton = windowOther.HeaderButton?.FirstOrDefault(x => x.HintText == "Close");
@@ -400,12 +420,12 @@ Func<object> InBeltMineStep()
 		
 	}
 
-	EnsureWindowInventoryOpenActiveShip();
-			if ((0 ==ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck.Length > 0))
+	EnsureWindowInventoryOpen();
+			if ( (!OreHoldFilledForOffload ) &&(0 ==ListRatOverviewEntry?.Length) && (0 < listOverviewCommanderWreck.Length ) )
 			{
 			if (LootButton != null)
 				Sanderling.MouseClickLeft(LootButton);
-			if ( listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax < 1200)
+			if ( listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 1200)
 				ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
 			}
 	if ((0 ==ListRatOverviewEntry?.Length) || (0 != listOverviewDreadCheck?.Length ))
@@ -457,12 +477,21 @@ IWindowDroneView	WindowDrones	=>
 				var inventoryActiveShipEntry = WindowInventory?.ActiveShipEntry;
 				var ShipHasHold = inventoryActiveShipEntry?.TreeEntryFromCargoSpaceType(ShipCargoSpaceTypeEnum.General) != null;
 				var hasHold = ShipHasHold;
-				ITreeViewEntry InventoryActiveShipContainer = WindowInventory?.ActiveShipEntry?.TreeEntryFromCargoSpaceType(
-								hasHold ? ShipCargoSpaceTypeEnum.General : ShipCargoSpaceTypeEnum.General);
 
-				var OreHoldCapacityMilli = (InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
+ITreeViewEntry InventoryActiveShipContainer
+{
+	get
+	{
+		var	hasHold = ShipHasHold;
 
-				int? OreHoldFillPercent = (int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max);
+		return
+			WindowInventory?.ActiveShipEntry?.TreeEntryFromCargoSpaceType(
+				hasHold ? ShipCargoSpaceTypeEnum.OreHold : ShipCargoSpaceTypeEnum.General);
+	}
+}
+IInventoryCapacityGauge OreHoldCapacityMilli =>
+	(InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
+int? OreHoldFillPercent => (int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max);
 
 
 
@@ -818,6 +847,7 @@ void MemoryUpdate()
 {
 	RetreatUpdate();
 	UpdateLocationRecord();
+	OffloadCountUpdate();
 }
 
 
@@ -966,7 +996,18 @@ ActivateAfterburnerExecute();
 	Host.Delay(1111);
 	Host.Log("1 sec");
 }
+void OffloadCountUpdate()
+{
+	var	OreHoldFillPercentSynced	= OreHoldFillPercent;
 
+	if(!OreHoldFillPercentSynced.HasValue)
+		return;
+
+	if(0 == OreHoldFillPercentSynced && OreHoldFillPercentSynced < LastCheckOreHoldFillPercent)
+		++OffloadCount;
+
+	LastCheckOreHoldFillPercent = OreHoldFillPercentSynced;
+}
 
  bool AnomalySuitableGeneral(MemoryStruct.IListEntry scanResult) =>
 			scanResult?.CellValueFromColumnHeader(AnomalyToTakeColumnHeader)?.RegexMatchSuccessIgnoreCase(AnomalyToTake) ?? false;
