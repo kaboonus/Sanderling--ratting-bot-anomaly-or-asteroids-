@@ -6,8 +6,8 @@
 - take the rats in order
 - Loot wrecks – all, when cargo isn’t almost full; when is full, warp home
 - When are hostiles in local, warp “home”( for now, make your window biggest possible)
--The Commanders or officers are already in commanderNameWreck ( + wrecks, to take all loot)
-
+- The Commanders or officers are already in commanderNameWreck ( + wrecks, to take all loot)
+- Set in overview neutrals in red; ( everybody who is not you corp/ally etc); 
 Set your own tab for combat pve
 - The symbol ♦ is from drifters; they appear in hordes near stations and asteroids
 
