@@ -1,4 +1,4 @@
-/*This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
+/*V 1.02This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
 - orbit at distance (W + click) or around selected rat. Alternatively, by overview menu at max 30 km ...I let the code there.
 - run from reds
 - activate /stop Armor repairer automatically 
@@ -13,8 +13,8 @@ Set your own tab for combat pve
 
 ###################
 Testing :
-Don’t know yet if ignore the anomalies with friends inside (when you enter in site and if ignore or not later when you are the owner)
-RunFromRats/reds - not tested yet
+Update: now the belts are taken in order, without crash, anomalies  - updated code. Iy could generate an crash when you move the mouse in the same time when he click
+loot wrecks : he need to click only once on "open cargo", still looking at a solution( the one with var click stop = true / false  , not so reliable)
 
 To do:
 -	Improve the code to warp at asteroids (with measurements and conditions)
@@ -34,21 +34,21 @@ using MemoryStruct = Sanderling.Interface.MemoryStruct;
 
 //	begin of configuration section ->
 
-var RetreatOnNeutralOrHostileInLocal = true;   // warp to RetreatBookmark when a neutral or hostile is visible in local.
-var RattingAnomaly = true;	//	when this is set to true, you take anomaly
-var RattingAsteroids = false;	//	when this is set to true, you take asteroids
+var RetreatOnNeutralOrHostileInLocal = false;   // warp to RetreatBookmark when a neutral or hostile is visible in local.
+var RattingAnomaly = false;	//	when this is set to true, you take anomaly
+var RattingAsteroids = true;	//	when this is set to true, you take asteroids
 
 
 /////settings anomaly
 string AnomalyToTakeColumnHeader = "name";  // the column header from table ex : name
 string AnomalyToTake = "forsaken hub"; // his name , ex:  "forsaken hub"  " combat"
-string IgnoreAnomalyName = "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|haven|port|den";// what anomaly to ignore
+string IgnoreAnomalyName = "haven|Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|port|den";// what anomaly to ignore
 string IgnoreColumnheader = "Name";//the head  of anomaly to ignore
 // you have to run from this rats:
 string runFromRats = "♦|Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
 
 //celestial to orbit
-string celestialOrbit = "broken|pirate gate|wreck";
+string celestialOrbit = "broken|pirate gate";
 
 string CelestialToAvoid = "Chemical Factory"; // this one make difference between haven rock and gas
 // wrecks commander etc
@@ -131,7 +131,14 @@ CloseModalUIElement();
 
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 {
-	Host.Log("retreat ????");
+	Host.Log("retreat ???? play beep to alarm you");
+	Console.Beep(500, 200);
+	StopAfterburner();
+	ActivateArmorRepairerExecute();
+	 if (Measurement?.ShipUi?.Indication?.ManeuverType == ShipManeuverTypeEnum.Orbit)
+	{
+	ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, RetreatBookmark, "align");	
+	}
 	if ((returnDronesToBayOnRetreat)  && (0 != DronesInSpaceCount))	{ DroneEnsureInBay();}
 
 	if (!returnDronesToBayOnRetreat || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
@@ -240,7 +247,7 @@ void CloseWindowTelecom()
     if (CloseButton != null)
         Sanderling.MouseClickLeft(CloseButton);
 }
-public void CloseWindowOther()//txk Terpla
+public void CloseWindowOther()//thx Terpla
 {
     Host.Log("close WindowOther");
     var windowOther = Sanderling?.MemoryMeasurementParsed?.Value?.WindowOther?.FirstOrDefault();
@@ -281,7 +288,7 @@ void DroneReturnToBay()
     // Sanderling.KeyboardPressCombined(new[]{ targetLockedKeyCode, VirtualKeyCode.VK_R });//if you like 
 }
 
-var ShipManeuverStatus = Measurement.ShipUi?.Indication?.ManeuverType;
+//var ShipManeuverStatus = Measurement?.ShipUi?.Indication?.ManeuverType;
 
 Func<object> DefenseStep()
 {
@@ -352,10 +359,8 @@ Func<object> DefenseStep()
         Sanderling.KeyboardPress(attackDrones);
         Host.Log("engage target");
     }
-    if (EWarToAttack?.Length > 0)//thx pikacuq
+    if (EWarToAttack?.Count() > 0)//thx pikacuq
     {
-
-
         var EWarSelected = EWarToAttack?.FirstOrDefault(target => target?.IsSelected ?? false);
         var EWarLocked = EWarToAttack?.FirstOrDefault(target => target?.MeTargeted ?? false);
 
@@ -375,22 +380,26 @@ Func<object> DefenseStep()
             Host.Log("engage Ewar target ");
         }
     }
-    if (0 == ListRatOverviewEntry?.Length) { StopAfterburner(); }
+    if (0 == ListRatOverviewEntry?.Count())
+    { StopAfterburner(); }
     return DefenseStep;
 }
 
 
 Func<object> InBeltMineStep()
 {
-    var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
+var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
 
-    if ((listOverviewEntryFriends.Length != 0) && ListCelestialObjects?.Length > 0 && ListCelestialToAvoid?.Length>0)
+
+    if ((0 < listOverviewEntryFriends.Length) && ListCelestialObjects?.Length > 0 && ListCelestialToAvoid?.Length>0)
+    {
+        if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
         {
             Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
             return TakeAnomaly;
         }
-    
-    if ((ReadyForManeuver) && (ShipManeuverStatus != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
+    }
+    if ((ReadyForManeuver) && (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
     {
         Orbitkeyboard();
 
@@ -399,24 +408,23 @@ Func<object> InBeltMineStep()
             Host.Log("enter defense.");
             return DefenseStep;
         }
-
     }
 
     EnsureWindowInventoryOpen();
-    if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length) && (0 < listOverviewCommanderWreck.Length))
-    {
+    if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck.Length)
+	{
+        StopAfterburner();
+		
         if (LootButton != null)
             Sanderling.MouseClickLeft(LootButton);
-        if (listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 1200)
+        if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )//&& (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Approach || Measurement?.ShipUi?.SpeedMilli<5000))
             ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
-    }
-    if ((0 == ListRatOverviewEntry?.Length) || (0 != listOverviewDreadCheck?.Length))
-    {
-        Host.Log("return to main step");
-        StopAfterburner();
+	}
+    else
+ 	{
+        Host.Log("site finished, return to main step");
         return MainStep;
-    }
-
+	}
     return InBeltMineStep;
 }
 
@@ -472,7 +480,7 @@ string OverviewTypeSelectionName =>
 
 Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.Where(entry =>
     (entry?.MainIconIsRed ?? false))
-    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate other than anomaly
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"battery|tower|sentry|web|strain|splinter|render|raider|friar|reaver")) //Frigate
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum|prophet")) //Cruiser
@@ -480,7 +488,6 @@ Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"core\s|centus|alvus|pith\s|corpus|gist\s")) //Battleship
     ?.ThenBy(entry => entry?.DistanceMax ?? int.MaxValue)
     ?.ToArray();
-	
 Parse.IOverviewEntry[] ListCelestialObjects => WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(celestialOrbit) ?? false)
     ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
@@ -490,7 +497,6 @@ Parse.IOverviewEntry[] ListCelestialToAvoid => WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(CelestialToAvoid ) ?? false)
     ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
     ?.ToArray();
-	
 
 Parse.IOverviewEntry[] listOverviewDreadCheck => WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccess(runFromRats) ?? true)
@@ -501,23 +507,26 @@ Parse.IOverviewEntry[] listOverviewEntryFriends =>
     ?.Where(entry => entry?.ListBackgroundColor?.Any(IsFriendBackgroundColor) ?? false)
     ?.ToArray();
 
-
 Parse.IOverviewEntry[] listOverviewEntryEnemy =>
     WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.ListBackgroundColor?.Any(IsEnemyBackgroundColor) ?? false)
     ?.ToArray();
-
+// this is for ewar - not used for the momment
 EWarTypeEnum[] listEWarPriorityGroupTeamplate =
 {
-    EWarTypeEnum.WarpDisrupt, EWarTypeEnum.WarpScramble, EWarTypeEnum.ECM, EWarTypeEnum.Web, EWarTypeEnum.EnergyNeut,EWarTypeEnum.EnergyVampire,
+    EWarTypeEnum.WarpDisrupt, EWarTypeEnum.WarpScramble, EWarTypeEnum.ECM, EWarTypeEnum.Web, EWarTypeEnum.EnergyNeut, EWarTypeEnum.EnergyVampire,
 };
 
 Parse.IOverviewEntry[] EWarToAttack =>
-    WindowOverview?.ListView?.Entry?
-	.Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) && listEWarPriorityGroupTeamplate.Intersect(entry?.EWarType).Any())
-	?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+    WindowOverview?.ListView?.Entry
+	?.Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) && (entry?.EWarType).Any())
+	?.OrderBy(entry => entry?.)
 	?.ToArray();
-	
+	/* tests: with listEWarPriorityGroupTeamplate !=null will ignore any ewar, without = argument null exception at first argument ( the list of enums) intersect 
+    ?.Where(entry => entry != null && (!(entry?.EWarType?.IsNullOrEmpty() ?? false))&& listEWarPriorityGroupTeamplate !=null && listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
+        ?.ToArray();
+
+	*/
 Parse.IOverviewEntry[] listOverviewCommanderWreck =>
     WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(commanderNameWreck) ?? true)
@@ -618,73 +627,101 @@ void InInventoryUnloadItemsTo(string DestinationContainerName)
     }
 }
 
-bool InitiateWarpToMiningSite() =>
-    InitiateDockToOrWarpToLocationInSolarSystemMenu("asteroid belts", PickNextMiningSiteFromSystemMenu);
+bool InitiateWarpToMiningSite()	=>
+	InitiateDockToOrWarpToLocationInSolarSystemMenu("asteroid belts", PickNextMiningSiteFromSystemMenu);
 
 MemoryStruct.IMenuEntry PickNextMiningSiteFromSystemMenu(IReadOnlyList<MemoryStruct.IMenuEntry> availableMenuEntries)
 {
-    Host.Log("I am seeing " + availableMenuEntries?.Count.ToString() + " mining sites to choose from.");
+	Host.Log("I am seeing " + availableMenuEntries?.Count.ToString() + " mining sites to choose from.");
 
-    var nextSite =
-        availableMenuEntries
-        ?.OrderBy(menuEntry => visitedLocations.ToList().IndexOf(menuEntry?.Text))
-        ?.FirstOrDefault();
+	var nextSite =
+		availableMenuEntries
+		?.OrderBy(menuEntry => visitedLocations.ToList().IndexOf(menuEntry?.Text))
+		?.FirstOrDefault();
 
-    Host.Log("I pick '" + nextSite?.Text + "' as next mining site, based on the intent to rotate through the mining sites and recorded previous locations.");
-    return nextSite;
+	Host.Log("I pick '" + nextSite?.Text + "' as next mining site, based on the intent to rotate through the mining sites and recorded previous locations.");
+	return nextSite;
 }
 
 bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
-    string submenuLabel,
-    Func<IReadOnlyList<MemoryStruct.IMenuEntry>, MemoryStruct.IMenuEntry> pickPreferredDestination = null)
+	string submenuLabel,
+	Func<IReadOnlyList<MemoryStruct.IMenuEntry>, MemoryStruct.IMenuEntry> pickPreferredDestination = null)
 {
-    Host.Log("Attempt to initiate dock to or warp to menu entry in submenu '" + submenuLabel + "'");
+	Host.Log("Attempt to initiate dock to or warp to menu entry in submenu '" + submenuLabel + "'");
+	
+	var listSurroundingsButton = Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton;
+	
+	Sanderling.MouseClickRight(listSurroundingsButton);
 
-    var listSurroundingsButton = Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton;
+	var submenuEntry = Measurement?.Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("^" + submenuLabel + "$", RegexOptions.IgnoreCase);
 
-    Sanderling.MouseClickRight(listSurroundingsButton);
+	if(null == submenuEntry)
+	{
+		Host.Log("Submenu '" + submenuLabel + "' not found in the solar system menu.");
+		return true;
+	}
 
-    var submenuEntry = Measurement?.Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("^" + submenuLabel + "$", RegexOptions.IgnoreCase);
+	Sanderling.MouseClickLeft(submenuEntry);
 
-    if (null == submenuEntry)
-    {
-        Host.Log("Submenu '" + submenuLabel + "' not found in the solar system menu.");
-        return true;
-    }
+	var submenu = Measurement?.Menu?.ElementAtOrDefault(1);
 
-    Sanderling.MouseClickLeft(submenuEntry);
+	var destinationMenuEntry = pickPreferredDestination?.Invoke(submenu?.Entry?.ToList()) ?? submenu?.Entry?.FirstOrDefault();
 
-    var submenu = Measurement?.Menu?.ElementAtOrDefault(1);
+	if(destinationMenuEntry == null)
+	{
+		Host.Log("Failed to open submenu '" + submenuLabel + "' in the solar system menu.");
+		return true;
+	}
 
-    var destinationMenuEntry = pickPreferredDestination?.Invoke(submenu?.Entry?.ToList()) ?? submenu?.Entry?.FirstOrDefault();
+	Sanderling.MouseClickLeft(destinationMenuEntry);
 
-    if (destinationMenuEntry == null)
-    {
-        Host.Log("Failed to open submenu '" + submenuLabel + "' in the solar system menu.");
-        return true;
-    }
+	var actionsMenu = Measurement?.Menu?.ElementAtOrDefault(2);
 
-    Sanderling.MouseClickRight(destinationMenuEntry);
-    var menuResult = Measurement?.Menu?.ElementAtOrDefault(2);
-    var menuResultWarp = menuResult?.Entry.ToArray();
-    var menuResultSelectWarpMenu = menuResultWarp?[1];
+	if(destinationMenuEntry == null)
+	{
+		Host.Log("Failed to open actions menu for '" + destinationMenuEntry.Text + "' in the solar system menu.");
+		return true;
+	}
+	var menuResultaction = actionsMenu?.Entry.ToArray();
+	var menuResultSelectWarpMenu= menuResultaction?[1];
+	var maneuverMenuEntry = menuResultSelectWarpMenu;
 
-    Sanderling.MouseClickRight(menuResultSelectWarpMenu);
+	if (maneuverMenuEntry?.Text != "Warp to Within")
+	{
+	Host.Log("not a good menu");
+	return true;
+	}
+	if (maneuverMenuEntry?.Text == "Warp to Within")
+	{
+		Host.Log("initiating '" + maneuverMenuEntry.Text + "' on '" + destinationMenuEntry?.Text + "'");
+		
+		Sanderling.MouseClickRight(maneuverMenuEntry);
+		
+		var menuResultats = Measurement?.Menu?.ElementAtOrDefault(3);
+		var menuResultWarpDestination = menuResultats?.Entry.ToArray();
+		if (menuResultWarpDestination[2].Text !=  "Within 20 km")
+		{
+		Host.Log("Failed to open the kinder '" + destinationMenuEntry.Text + "' in the solar system menu.");
+		return true;
+		}
+		else
+		{
+		Host.Log("initiating  warp on '" + destinationMenuEntry?.Text + "'");
+		
+		ClickMenuEntryOnMenuRoot(menuResultWarpDestination[2], "within 20 km");
+   		Host.Delay(8000);
+		return false;
+		}		
+	}
 
-    var menuResultats = Measurement?.Menu?.ElementAtOrDefault(3);
-    var menuResultWarpDestination = menuResultats?.Entry.ToArray();
-
-    Host.Log("initiating  warp on '" + destinationMenuEntry?.Text + "'");
-    ClickMenuEntryOnMenuRoot(menuResultWarpDestination[2], "within 20 km");
-    Host.Log("no suitable menu entry found on '" + destinationMenuEntry?.Text + "'");
-    return true;
+	Host.Log("no suitable menu entry found on '" + destinationMenuEntry?.Text + "'");
+	return true;
 }
 void LockTarget()
 {
     Sanderling.KeyDown(lockTargetKeyCode);
     Sanderling.MouseClickLeft(ListRatOverviewEntry?.FirstOrDefault(entry => !((entry?.MeTargeted ?? false) || (entry?.MeTargeting ?? false))));
     Sanderling.KeyUp(lockTargetKeyCode);
-
 }
 void UnlockTarget()
 {
@@ -692,7 +729,6 @@ void UnlockTarget()
     Sanderling.MouseClickRight(targetSelected);
     Sanderling.MouseClickLeft(MenuEntryUnLockTarget);
     Host.Log("this is not a target");
-
 }
 void Undock()
 {
@@ -702,7 +738,6 @@ void Undock()
         Host.Log("waiting for undocking to complete.");
         Host.Delay(8000);
     }
-
     Host.Delay(4444);
     Sanderling.InvalidateMeasurement();
 }
@@ -892,7 +927,8 @@ void ClickMenuEntryOnPatternMenuRoot(IUIElement MenuRoot, string MenuEntryRegexP
     {
         // Using the API explorer when we click on the top menu we get another menu that has more options
         // So skip the MenuRoot and click on Submenu
-        var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.Skip(1).First();
+      //  var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.Skip(1).First();
+      var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.FirstOrDefault();//skipping made error on align command
         var subMenuEntry = subMenu?.EntryFirstMatchingRegexPattern(SubMenuEntryRegexPattern, RegexOptions.IgnoreCase);
         Sanderling.MouseClickLeft(subMenuEntry);
     }
@@ -918,7 +954,6 @@ Func<object> TakeAnomaly()
         ClickMenuEntryOnMenuRoot(scanActuallyAnomaly, "Ignore Result");
         return TakeAnomaly;
     }
-
     if (null != UndesiredAnomaly)
     {
         ClickMenuEntryOnMenuRoot(UndesiredAnomaly, "Ignore Result");
@@ -927,25 +962,29 @@ Func<object> TakeAnomaly()
 
     if (null == scanResultCombatSite)
         Host.Log("    I don't have the named anomaly, review the bot for taking the asteroids or just wait ");
-
     if ((null != scanResultCombatSite) && (null == UndesiredAnomaly))
     {
         Sanderling.MouseClickRight(scanResultCombatSite);
         var menuResult = Measurement?.Menu?.ToList();
         if (null == menuResult)
-        { Host.Log("    ignore result  ?? just cheking  "); ClickMenuEntryOnMenuRoot(scanResultCombatSite, "Ignore Result"); }
-
+        { Host.Log("    ignore result  ?? just cheking  "); return TakeAnomaly; }
+		else
+		{
         var menuResultWarp = menuResult?[0].Entry.ToArray();
         var menuResultSelectWarpMenu = menuResultWarp?[1];
-
         Sanderling.MouseClickLeft(menuResultSelectWarpMenu);
-
         var menuResultats = Measurement?.Menu?.ToList();
-        var menuResultWarpDestination = menuResultats?[1].Entry.ToArray();
-
-        Host.Log("warping to anomaly  ");
-        ClickMenuEntryOnMenuRoot(menuResultWarpDestination[4], "within 50 km");
-
+		if (Measurement?.Menu?.ToList() ? [1].Entry.ToArray()[4].Text !=  "Within 50 km")
+			{ 
+			return TakeAnomaly;
+			}
+			else
+			{        
+			var menuResultWarpDestination = Measurement?.Menu?.ToList() ? [1].Entry.ToArray();
+			Host.Log("warping to anomaly  ");
+			ClickMenuEntryOnMenuRoot(menuResultWarpDestination[4], "within 50 km");
+			}
+		}
         return MainStep;
     }
     return MainStep;
