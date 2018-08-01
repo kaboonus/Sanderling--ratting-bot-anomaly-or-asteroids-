@@ -13,7 +13,7 @@ Set your own tab for combat pve
 
 ###################
 Testing :
-Update: now the belts are taken in order, without crash, anomalies  - updated code. Iy could generate an crash when you move the mouse in the same time when he click
+Update: now the belts are taken in order, without crash, anomalies  - updated code. It could generate an crash when you move the mouse in the same time when he click
 loot wrecks : he need to click only once on "open cargo", still looking at a solution( the one with var click stop = true / false  , not so reliable)
 
 To do:
@@ -45,7 +45,7 @@ string AnomalyToTake = "forsaken hub"; // his name , ex:  "forsaken hub"  " comb
 string IgnoreAnomalyName = "haven|Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|port|den";// what anomaly to ignore
 string IgnoreColumnheader = "Name";//the head  of anomaly to ignore
 // you have to run from this rats:
-string runFromRats = "♦|Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
+string runFromRats = "♦|Titan|Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
 
 //celestial to orbit
 string celestialOrbit = "broken|pirate gate";
@@ -520,7 +520,6 @@ EWarTypeEnum[] listEWarPriorityGroupTeamplate =
 Parse.IOverviewEntry[] EWarToAttack =>
     WindowOverview?.ListView?.Entry
 	?.Where(entry => entry != null && (!entry?.EWarType?.IsNullOrEmpty() ?? false) && (entry?.EWarType).Any())
-	?.OrderBy(entry => entry?.)
 	?.ToArray();
 	/* tests: with listEWarPriorityGroupTeamplate !=null will ignore any ewar, without = argument null exception at first argument ( the list of enums) intersect 
     ?.Where(entry => entry != null && (!(entry?.EWarType?.IsNullOrEmpty() ?? false))&& listEWarPriorityGroupTeamplate !=null && listEWarPriorityGroupTeamplate.Intersect(entry.EWarType).Any())
