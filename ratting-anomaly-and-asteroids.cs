@@ -47,8 +47,8 @@ var RattingAsteroids = false;	//	when this is set to true, you take asteroids
 
 /////settings anomaly
 string AnomalyToTakeColumnHeader = "name";  // the column header from table ex : name
-string AnomalyToTake = "forsaken hub"; // his name , ex:  "forsaken hub"  " combat"
-string IgnoreAnomalyName = "haven|Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|port|den";// what anomaly to ignore
+string AnomalyToTake = "haven"; // his name , ex:  "forsaken hub"  " combat"
+string IgnoreAnomalyName = "Belt|asteroid|drone|forlorn|rally|sanctum|blood hub|serpentis hub|hidden|port|den";// what anomaly to ignore
 string IgnoreColumnheader = "Name";//the head  of anomaly to ignore
 // you have to run from this rats:
 string runFromRats = "♦|Titan|Dreadnought|Autothysian|Autothysian lancer|punisher|bestower|harbringer";// you run from him
@@ -78,7 +78,7 @@ var StartArmorRepairerHitPoints = 95; // armor value in % , when it starts armor
 
 
 //	Bookmark of location where ore should be unloaded.
-string UnloadBookmark = "home"; //supposed your bookmark is named home
+string UnloadBookmark = "00-Station"; //supposed your bookmark is named home
 
 //	Name of the container to unload to as shown in inventory.
 string UnloadDestContainerName = "Item Hangar"; //supposed it is Item Hangar
