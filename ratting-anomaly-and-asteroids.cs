@@ -12,7 +12,7 @@
 - Set in overview neutrals in red; ( everybody who is not you corp/ally etc); 
 !! The symbol ♦ is from drifters; they appear in hordes near stations and asteroids (also is in test, sometime is work sometime, not)
 !! Set your own overview : tab for combat pve and also everybody else than fleet, corp, ally, militia, god standings in red( that means : bad standings, neutral etc are their background in RED)
-!!
+!! do not overlap the windows :d :)) !!
 
 ###################
 Testing :
@@ -605,13 +605,6 @@ WindowChatChannel chatLocal =>
      ?.FirstOrDefault(windowChat => windowChat?.Caption?.RegexMatchSuccessIgnoreCase("local") ?? false);
 //    assuming that own character is always visible in local
 public bool hostileOrNeutralsInLocal => 1 < chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy);
-if (hostileOrNeutralsInLocal)
-{
-if (null == chatLocal)
-return false;
-if (chatLocal?.ParticipantView?.Scroll?.IsScrollable() ?? true)
-return false;
-}
 
 void ClickMenuEntryOnMenuRoot(IUIElement MenuRoot, string MenuEntryRegexPattern)
 {
