@@ -1,4 +1,6 @@
-/*V 1.03 This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
+/*V 1.04 This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
++ new feature : changing the tab to the one for  combat anomaly (so don't forget to fill your tab name, I put an generic "combat")
++ new feature : you have to fill in how many armor repairers you have , and afterburners. This function is for measure module, to be sure you have all measured ( Thx to terpla!!)
 - orbit at distance (W + click) or around selected rat. Alternatively, by overview menu at max 30 km ...I let the code there.
 - run from reds
 - activate /stop Armor repairer automatically 
@@ -10,21 +12,24 @@
 - Set in overview neutrals in red; ( everybody who is not you corp/ally etc); 
 !! The symbol ♦ is from drifters; they appear in hordes near stations and asteroids (also is in test, sometime is work sometime, not)
 !! Set your own overview : tab for combat pve and also everybody else than fleet, corp, ally, militia, god standings in red( that means : bad standings, neutral etc are their background in RED)
-
+!!
 
 ###################
 Testing :
-!!!! if an red appear in local and he go fast, the bot is comming back at killing rats.
-	attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
+!!!! if an red appear in local and he get out fast, the bot is comming back at killing rats.
+	+ attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
+	+ the window local chat must be biggest possible? if in you system are 50 persons and your window have enter for 10 persons  you are kill meat
 + added microwarpdrive 
++ owning anomaly shoud be reliable
 + updated code for warp home
 + simplified the code for attacking with drones
 Update: now the belts are taken in order, without crash, anomalies  - updated code. It could generate an crash when you move the mouse in the same time when he click
-loot wrecks : he need to click only once on "open cargo", still looking at a solution( the one with var click stop = true / false  , not so reliable)
-The symbol ♦ from types
+-loot wrecks : he need to click only once on "open cargo", still looking at a solution( the one with var click stop = true / false  , not so reliable)
+-The symbol ♦ from types
+
 To do:
 -distinguish ewar web/scramble etc from targetpainting ( for example)
--	I have to do someting with local chat when is scrollable
+local chat  if is scrollable 
 ###################
 Thx to:
 Viir
@@ -62,6 +67,8 @@ string commanderNameWreck = "Commander|Dark Blood|true|Shadow Serpentis|Dread Gu
 
 
 ////////
+//new!! ratting tab, fill in with your own ratting tab
+string rattingTab = "combat";
 
 int DroneNumber = 5;// set number of drones in space
 
@@ -69,14 +76,17 @@ int TargetCountMax = 2; //target numbers
 //set  hardeners, repairer, set true if you want to run them all time, if not, there is set StartArmorRepairerHitPoints
 var ActivateHardener = true;
 var ActivateArmorRepairer = false;
-
+// 	Number of ArmorRepairers; Thx Terpla. Both armor repairers are managed in same time, if you have 2. 
+const int ArmorRepairsCount = 1;
+// 	Number of Afterburners, Thx Terpla. Also be carefull, I cannot manage 1 afterburner and 1 MWD in same time. this function is to be sure I have measurements in measure all modules tooltip
+const int AfterburnersCount = 1;
 //	warpout emergency armor
 
 var EmergencyWarpOutHitpointPercent = 40; // just in case, when you warp on emergency
 var StartArmorRepairerHitPoints = 95; // armor value in % , when it starts armor repairer
-
-
-
+//
+//
+//
 //	Bookmark of location where ore should be unloaded.
 string UnloadBookmark = "home"; //supposed your bookmark is named home
 
@@ -95,7 +105,7 @@ var lockTargetKeyCode = VirtualKeyCode.LCONTROL;// lock target
 
 var targetLockedKeyCode = VirtualKeyCode.SHIFT;//locked target
 
-var orbitKeyCode = (VirtualKeyCode)'W';
+var orbitKeyCode = VirtualKeyCode.VK_W;
 
 var attackDrones = VirtualKeyCode.VK_F;
 
@@ -124,7 +134,7 @@ MemoryUpdate();
 Host.Log(
 	" ; shield.hp: " + ShieldHpPercent + "%" +
 	" ; armor.hp: " + ArmorHpPercent + "%" +
-	" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy)-1)+ " # "  + RetreatReason + 
+	" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy))+ " # "  + RetreatReason + 
 	" ; overview.rats: " + ListRatOverviewEntry?.Length +
 	" ; drones in space: " + DronesInSpaceCount +
 	" ; targeted rats :  " + Measurement?.Target?.Length+
@@ -336,7 +346,7 @@ Func<object> DefenseStep()
         ActivateArmorRepairerExecute();
     }
 
-    if (ArmorHpPercent > StartArmorRepairerHitPoints)
+    if (ArmorHpPercent > StartArmorRepairerHitPoints && ActivateArmorRepairer == false)
     { StopArmorRepairer(); }
 
     if (DefenseExit)
@@ -412,12 +422,12 @@ Func<object> DefenseStep()
 Func<object> InBeltMineStep()
 {
 var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
-	if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Warp)
-        Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
     if (RattingAnomaly && (0 < listOverviewEntryFriends.Length || ListCelestialToAvoid?.Length>0 ) && 0 < ListRatOverviewEntry?.Length )
         if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
    	    {
-            return TakeAnomaly;
+		Host.Log("presence of friends on site, I ignore this anomaly and take another one");
+		ActivateArmorRepairerExecute();//to be sure I stay alove, rats can target me
+        return TakeAnomaly;
 		}
     if ((ReadyForManeuver) && (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
     {
@@ -433,8 +443,10 @@ var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(te
     EnsureWindowInventoryOpen();
     if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck.Length)
 	{
+		if(!(listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 10000))
         StopAfterburner();
-		
+		else 		
+		ActivateAfterburnerExecute();
         if (LootButton != null)
             Sanderling.MouseClickLeft(LootButton);
         if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )//&& (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Approach || Measurement?.ShipUi?.SpeedMilli<5000))
@@ -475,7 +487,18 @@ Sanderling.Parse.IWindowInventory WindowInventory =>
 
 IWindowDroneView WindowDrones =>
     Measurement?.WindowDroneView?.FirstOrDefault();
+	
 
+Tab OverviewTabActive =>
+	Measurement?.WindowOverview?.FirstOrDefault()?.PresetTab
+	?.OrderByDescending(tab => tab?.LabelColorOpacityMilli ?? 1500)
+	?.FirstOrDefault();
+Tab combatTab => WindowOverview?.PresetTab
+	?.OrderByDescending(tab => tab?.Label.Text.RegexMatchSuccessIgnoreCase(rattingTab))
+	?.FirstOrDefault();
+	
+	
+	
 var inventoryActiveShip = WindowInventory?.ActiveShipEntry;
 var inventoryActiveShipEntry = WindowInventory?.ActiveShipEntry;
 var ShipHasHold = inventoryActiveShipEntry?.TreeEntryFromCargoSpaceType(ShipCargoSpaceTypeEnum.General) != null;
@@ -581,8 +604,14 @@ WindowChatChannel chatLocal =>
      Sanderling.MemoryMeasurementParsed?.Value?.WindowChatChannel
      ?.FirstOrDefault(windowChat => windowChat?.Caption?.RegexMatchSuccessIgnoreCase("local") ?? false);
 //    assuming that own character is always visible in local
-public bool hostileOrNeutralsInLocal => 1 != chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy);
-
+public bool hostileOrNeutralsInLocal => 1 < chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy);
+if (hostileOrNeutralsInLocal)
+{
+if (null == chatLocal)
+return false;
+if (chatLocal?.ParticipantView?.Scroll?.IsScrollable() ?? true)
+return false;
+}
 
 void ClickMenuEntryOnMenuRoot(IUIElement MenuRoot, string MenuEntryRegexPattern)
 {
@@ -769,21 +798,34 @@ void Undock()
 
 void ModuleMeasureAllTooltip()
 {
-    Host.Log("measure tooltips of all modules.");
+	Host.Log("measure tooltips of all modules.");
+	
+		var armorRapairCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsArmorRepairer ?? false);
+		//var afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((m => m?.TooltipLast?.Value?.IsAfterburner ?? false) || (m => m?.TooltipLast?.Value?.IsMicroWarpDrive?? false));
+	//	(module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false));
+		var afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false)));
+	while( (armorRapairCount < ArmorRepairsCount) || (afterburnersCount <  AfterburnersCount)	)
+	{
+		if(Sanderling.MemoryMeasurementParsed?.Value?.IsDocked ?? false)
+			break;
+		foreach(var NextModule in Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule)
+		{
+			if(null == NextModule)
+				break;
+	
+			Host.Log("measure module.");
+			//	take multiple measurements of module tooltip to reduce risk to keep bad read tooltip.
+			Sanderling.MouseMove(NextModule);
+			Sanderling.WaitForMeasurement();
+			Sanderling.MouseMove(NextModule);
+		}		
+	
 
-    for (; ; )
-    {
-        var NextModule = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.FirstOrDefault(m => null == m?.TooltipLast);
+		armorRapairCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsArmorRepairer ?? false);
+		afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false)));
+		Host.Log(  " Armor Repair count = " + armorRapairCount + ", Afterburners = " + afterburnersCount + " " );
 
-        if (null == NextModule)
-            break;
-
-        Host.Log("measure module.");
-        //	take multiple measurements of module tooltip to reduce risk to keep bad read tooltip.
-        Sanderling.MouseMove(NextModule);
-        Sanderling.WaitForMeasurement();
-        Sanderling.MouseMove(NextModule);
-    }
+	}
 }
 
 void ActivateHardenerExecute()
@@ -952,9 +994,8 @@ void ClickMenuEntryOnPatternMenuRoot(IUIElement MenuRoot, string MenuEntryRegexP
     {
         // Using the API explorer when we click on the top menu we get another menu that has more options
         // So skip the MenuRoot and click on Submenu
-      //  var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.Skip(1).First();
-      //var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.FirstOrDefault();//skipping made error on align command
-      var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.ElementAtOrDefault(1);
+		//var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.Skip(1).First();
+		var subMenu = Sanderling?.MemoryMeasurementParsed?.Value?.Menu?.ElementAtOrDefault(1);
         var subMenuEntry = subMenu?.EntryFirstMatchingRegexPattern(SubMenuEntryRegexPattern, RegexOptions.IgnoreCase);
         Sanderling.MouseClickLeft(subMenuEntry);
     }
@@ -971,10 +1012,19 @@ Func<object> TakeAnomaly()
 
     var scanResultCombatSite = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
 
-    Host.Log("take anomaly start");
+    Host.Log("working at ignoring anomalies :) be patient");
+
+   if (combatTab != OverviewTabActive)
+	{ 
+		    //Host.Log("changing to your ratting tab : " +combatTab.Label.Text+ " !"); // if you want them
+		    //	Console.Beep(500, 200);
+	Sanderling.MouseClickLeft(combatTab);
+		Host.Delay(1111);
+	}
 
     if (probeScannerWindow == null)
         Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
+
     if (null != scanActuallyAnomaly)
     {
         ClickMenuEntryOnMenuRoot(scanActuallyAnomaly, "Ignore Result");
@@ -1009,8 +1059,8 @@ Func<object> TakeAnomaly()
 			var menuResultWarpDestination = Measurement?.Menu?.ToList() ? [1].Entry.ToArray();
 			Host.Log("warping to anomaly  ");
 			ClickMenuEntryOnMenuRoot(menuResultWarpDestination[4], "within 50 km");
-			    if (probeScannerWindow == null)
-        Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
+		if (probeScannerWindow != null)
+			Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
 			}
 		}
         return MainStep;
@@ -1020,18 +1070,18 @@ Func<object> TakeAnomaly()
 void Orbitkeyboard()
 {
     //Orbit(celestialOrbit); // to use for orbit celestial objects from overview 
-    Sanderling.KeyDown(VirtualKeyCode.VK_W);
+    Sanderling.KeyDown(orbitKeyCode);
 
     if (0 < ListCelestialObjects?.Length)
         Sanderling.MouseClickLeft(ListCelestialObjects?.FirstOrDefault());
     if (0 == ListCelestialObjects?.Length)
     { Sanderling.MouseClickLeft(ListRatOverviewEntry?.FirstOrDefault(entry => (entry?.MainIconIsRed ?? false))); }
 
-    Sanderling.KeyUp(VirtualKeyCode.VK_W);
+    Sanderling.KeyUp(orbitKeyCode);
 
     ActivateAfterburnerExecute();
     Host.Delay(1111);
-    Host.Log("1 sec");
+    Host.Log("afterburner activated");
 }
 void OffloadCountUpdate()
 {
