@@ -1,26 +1,49 @@
 /*V 1.04 This bot ratting anomaly and/or asteroids; warp to asteroids at 20km; anomaly at 50km; configurable from settings for almost everything.
-+ new feature : changing the tab to the one for  combat anomaly (so don't forget to fill your tab name, I put an generic "combat")
-+ new feature : you have to fill in how many armor repairers you have , and afterburners. This function is for measure module, to be sure you have all measured ( Thx to terpla!!)
++New: TIMERS !! Safe logout for smaller value of: DT, Timer session.  you go home and logout and stop bot before DT
+	(see notes on testing chapter), measured when you finish a site( belts or anomaly). 
+	+you can see the time span to closing the game and bot stop on stats messages and the time when you started the session ( botting) in you local time
++New: Offload LIMIT count
++New: When you dont have minim 5 drones in window drones you go home ( and bot stop) This will be measured only when you take anomaly
++New: Omnidirectional supported ( is better to fill in the complet name and remember is in tests)
++NEW delayed undock: fill in the values in seconds
+- changing the tab to the one for  combat anomaly (so don't forget to fill your tab name, I've fill in an generic "combat")
+- you have to fill in how many armor repairers you have , and afterburners; Hardeners and Omni you have(if you use them dont forget to set them true). 
+	This function is for measure module, to be sure you have all measured ( Thx to terpla!!)
 - orbit at distance (W + click) or around selected rat. Alternatively, by overview menu at max 30 km ...I let the code there.
-- run from reds
+- run from reds( on grid - but you have 99% chances to die if they are on you.)
 - activate /stop Armor repairer automatically 
 - activate afterburner
 - take the rats in order
-- Loot wrecks – all, when cargo isn’t almost full; when is full, warp home
-- When are hostiles in local, warp “home”( for now, make your window biggest possible)
+- Loot wrecks – all, or not, REMEMBER to set the empty wrecks to not be visibles in overview.  when is (x) % full, warp home
+- When are hostiles in local, warp “home”( for now, make your window local chat biggest possible)
 - The Commanders or officers are already in commanderNameWreck ( + wrecks, to take all loot)
-- Set in overview neutrals in red; ( everybody who is not you corp/ally etc); 
-!! The symbol ♦ is from drifters; they appear in hordes near stations and asteroids (also is in test, sometime is work sometime, not)
+- Set in overview neutrals background in red; ( everybody who is not your corp/ally etc); ( see for a picture on https://forum.botengine.org/t/ratting-bot-anomaly-and-or-asteroids-with-sanderling/1206/43)
+!! The symbol ♦ is from drifters; they appear in hordes near stations and asteroids (also is in test, sometimes is work, sometimes not)
 !! Set your own overview : tab for combat pve and also everybody else than fleet, corp, ally, militia, god standings in red( that means : bad standings, neutral etc are their background in RED)
 !! do not overlap the windows :d :)) !!
-
+!! see the guide
 ###################
 Testing :
+! Timers: To be clear about this feature I explain here the story
+	1.  the script contain already set the real DT-1min of server and this value is of reference  and calcs are made for EVE time (UTC);
+	2.	firstly we talk about a safe logout before downtime. 
+	2.a. you want to logout safe  with 10 min before DT. If you do anomalies then you have TO TAKE IN ACCOUNT ONE LAST ANOMALY, simply because you can finish a site right at safe - 1 min and start a new anomaly. For asteroids is similar but the time is smaller
+	2.b. Example: you need 45 min / anomaly but you have to warp home, dock , etc so you need 2-3 min in +. Overall, 1h 15m
+	2.c; fill in the 
+				minutesToDT = 15; //value in minutes before the DT of server
+				hoursToDT = 1;//value in h before the DT
+	3. The logic is similar for session timer: you wanna play 5h and 15m; Then you fill in :
+				hoursToSession = 5;
+				minutesToSession = 15;
+! The smaller value between DT and session timer is taken in account ( and you can see this value in stats
+	the stats show the closest in days: h : m. to be sure the maths are not messed, for now I let the days.
+!!Now the sketch is like that: the values, even if are measured all time, are taken in account ONLY when you finish a site ( anomaly or not)
+	BUT the script is made so you can change that and react at the time when this values are reached. ( you have to find inside the code where, or contact me)
 !!!! if an red appear in local and he get out fast, the bot is comming back at killing rats.
-	+ attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
-	+ the window local chat must be biggest possible? if in you system are 50 persons and your window have enter for 10 persons  you are kill meat
++ attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
++ the window local chat must be biggest possible? if in you system are 50 persons and your window have enter for 10 persons  you are kill meat
 + added microwarpdrive 
-+ owning anomaly shoud be reliable
++ owning anomaly should be reliable
 + updated code for warp home
 + simplified the code for attacking with drones
 Update: now the belts are taken in order, without crash, anomalies  - updated code. It could generate an crash when you move the mouse in the same time when he click
@@ -36,7 +59,29 @@ Viir
 Terpla
 pikacuq
 the others from https://forum.botengine.org/ who contribued with or without their ideas /knowledges /code lines to create this bot/script.
-
+############
+GUIDE:
+ fill in the values:
+ -retreat from neutrals 
+ -if you like to do anomalies or asteroids
+ -the timers ( see on TESTING) + values in seconds to delay undock
+ -name anomalies etc etc
+ -your home
+ -the name of your tab for ratting
+ -how many afterburners/hardeners/omni/armor repairers you have
+ -your home bookmark
+ -container into station for unload
+ -the name of your omni 
+ -the value for your emergency warp out ( only for armor supported)
+ -the value of your armor hp to start the repairer
+ -the value of your offload cargo ( you can have a real big last wreck with more than 100m3), default value is 75% now
+ -and offload count ( limit)
+ -make reds background in overview ( see forum my post)
+ - hide the empty wrecks ( see photo on forum, my post)
+ -DO NOT CHAT !! ( better hide the windos, except local, look on the photo on forum hot to do that in a manner 70%safe
+ -IF you warp/dock etc manual is better to stop the bot
+ -some features could not work on older versions of sanderling!!
+ !!not at the end but firstly , say thx to Viir, you have no ideea how much this man helped a noob like me to make and improve this script!!
 */
 
 using BotSharp.ToScript.Extension;
@@ -45,10 +90,21 @@ using MemoryStruct = Sanderling.Interface.MemoryStruct;
 
 //	begin of configuration section ->
 
-var RetreatOnNeutralOrHostileInLocal = true;   // warp to RetreatBookmark when a neutral or hostile is visible in local.
+var RetreatOnNeutralOrHostileInLocal =true;   // warp to RetreatBookmark when a neutral or hostile is visible in local.
 var RattingAnomaly = true;	//	when this is set to true, you take anomaly
 var RattingAsteroids = false;	//	when this is set to true, you take asteroids
+// SESSION/DT TImers
 
+var minutesToDT = 15; //value in minutes before the DT of server ( -1min)
+var hoursToDT = 1;//value in h before the DT-1min
+
+var hoursToSession = 5;
+var minutesToSession = 11;
+////
+var MinimDelayUndock = 2;//in seconds
+var MaximDelayUndock = 45;//in seconds
+
+var LimitOffloadCount = 100;
 
 /////settings anomaly
 string AnomalyToTakeColumnHeader = "name";  // the column header from table ex : name
@@ -75,17 +131,27 @@ int DroneNumber = 5;// set number of drones in space
 int TargetCountMax = 2; //target numbers
 //set  hardeners, repairer, set true if you want to run them all time, if not, there is set StartArmorRepairerHitPoints
 var ActivateHardener = true;
+var ActivateOmni = true;
 var ActivateArmorRepairer = false;
-// 	Number of ArmorRepairers; Thx Terpla. Both armor repairers are managed in same time, if you have 2. 
+string OmniSup = "Omnidirectional Tracking Link I";
+
+
+
+// 	Number of ArmorRepairers and afterburners; Thx Terpla. Both armor repairers are managed in same time, if you have 2. 
 const int ArmorRepairsCount = 1;
-// 	Number of Afterburners, Thx Terpla. Also be carefull, I cannot manage 1 afterburner and 1 MWD in same time. this function is to be sure I have measurements in measure all modules tooltip
 const int AfterburnersCount = 1;
+// 	Number of Afterburners, Thx Terpla. Also be carefull, I cannot manage 1 afterburner and 1 MWD in same time. this function is to be sure I have measurements in measure all modules tooltip
+//fill in carefull also the bot will keep measuring 
+
+const int HardenersCount = 0; 
+const int OmniCount = 0;
 //	warpout emergency armor
 
 var EmergencyWarpOutHitpointPercent = 40; // just in case, when you warp on emergency
 var StartArmorRepairerHitPoints = 95; // armor value in % , when it starts armor repairer
 //
-//
+
+bool returnDronesToBayOnRetreat = true;    // when set to true, bot will attempt to dock back the drones before retreating
 //
 //	Bookmark of location where ore should be unloaded.
 string UnloadBookmark = "home"; //supposed your bookmark is named home
@@ -109,14 +175,13 @@ var orbitKeyCode = VirtualKeyCode.VK_W;
 
 var attackDrones = VirtualKeyCode.VK_F;
 
-var EnterOffloadOreHoldFillPercent = 85;	//	percentage of ore hold fill level at which to enter the offload process and warp home.
+var EnterOffloadOreHoldFillPercent = 75;	//	percentage of ore hold fill level at which to enter the offload process and warp home.
 
 const string StatusStringFromDroneEntryTextRegexPattern = @"\((.*)\)";
 static public string StatusStringFromDroneEntryText(this string droneEntryText) => droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
+var startSession = DateTime.Now; // alternative: DateTime.UtcNow;
+var playSession = DateTime.UtcNow.AddHours(hoursToSession).AddMinutes(minutesToSession);
 
-/////
-
-bool returnDronesToBayOnRetreat = true; // when set to true, bot will attempt to dock back the drones before retreating
 
 
 //	<- end of configuration section
@@ -132,24 +197,26 @@ for(;;)
 MemoryUpdate();
 
 Host.Log(
-	" ; shield.hp: " + ShieldHpPercent + "%" +
+	"Session started at: " +  startSession.ToString(" HH:mm") +// alternative (" dd/MM/yyyy HH:mm") 
 	" ; armor.hp: " + ArmorHpPercent + "%" +
-	" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy))+ " # "  + RetreatReason + 
+	" ; retreat: " +(chatLocal?.ParticipantView?.Entry?.Count(IsNeutralOrEnemy)-1)+ " # "  + RetreatReason + 
 	" ; overview.rats: " + ListRatOverviewEntry?.Length +
-	" ; drones in space: " + DronesInSpaceCount +
+	" ; drones in space( from total): " + DronesInSpaceCount + "(" +(DronesInSpaceCount + DronesInBayCount)+ ")"+
 	" ; targeted rats :  " + Measurement?.Target?.Length+
-	" ; anchors : "  + ListCelestialObjects?.Length  +
-	" ; cargo percent  " + OreHoldFillPercent +
-	" ; offload count: " + OffloadCount + // just for test
-	" ; nextAct: " + NextActivity?.Method?.Name);
+	" ; cargo percent : " + OreHoldFillPercent + "%" +
+	" ; Closer logout in(days /h/ m) : "  + TimeSpan.FromMinutes(logoutgame).ToString(@"dd\:hh\:mm")+
+	" ; current offload count (max limit): " + OffloadCount + "("+ LimitOffloadCount+")" +
+	" ; nextAct  : " + NextActivity?.Method?.Name);
 
 CloseModalUIElement();
 
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 {
-	if (listOverviewDreadCheck?.Length > 0) Host.Log("run from dread");
-	
-	Host.Log("retreat !! play beep to alarm you");
+	if (listOverviewDreadCheck?.Length > 0)
+	{		Host.Log("I'm a chicken and I'm run from dread");
+	if (RattingAsteroids) {	StopAfterburner(); 	ActivateArmorRepairerExecute(); InitiateWarpToMiningSite(); }
+	}
+	Host.Log("Tactical retreat !! Better be a living cicken than a roasted bull! ");
 	Console.Beep(500, 200);
 	StopAfterburner();
 	ActivateArmorRepairerExecute();
@@ -160,7 +227,7 @@ if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 
 	if (!returnDronesToBayOnRetreat || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
 	{
-	Host.Log("Yes, I warping home ");
+	Host.Log("Picard : Yes, I warping home( I know ... I know ... Is an Miracle!!) ");
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
 	}
 	else 
@@ -188,7 +255,6 @@ bool DefenseExit =>
 bool DefenseEnter =>
     !DefenseExit;
 
-
 string RetreatReasonTemporary = null;
 string RetreatReasonPermanent = null;
 string RetreatReason => RetreatReasonPermanent ?? RetreatReasonTemporary;
@@ -196,47 +262,69 @@ int? LastCheckOreHoldFillPercent = null;
 
 int OffloadCount = 0;
 bool OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFillPercent)) <= OreHoldFillPercent;
+
 Func<object> MainStep()
 {
-    Host.Log("enter mainstep");
+	
+   // Host.Log("enter mainstep"); // used for debug
     if (Measurement?.IsDocked ?? false)
-    {
-        InInventoryUnloadItems();
+    {		InInventoryUnloadItems();
 
-        if (0 < RetreatReasonPermanent?.Length) { Host.Log("bot stop"); return BotStopActivity; }
+        if (0 < RetreatReasonPermanent?.Length || OffloadCount > LimitOffloadCount
+		||   logoutme==true )
+        { Host.Log("permanent retreat = bot stop");
+        	Sanderling.KeyboardPressCombined(new[]{ VirtualKeyCode.LMENU, VirtualKeyCode.SHIFT, VirtualKeyCode.VK_Q});
+		Host.Delay(1111);
+			if (reasonDrones == true) 
+			{ Host.Log(" Until you refill your drones = bot stop");
+				return BotStopActivity;
+			}
+		return BotStopActivity; 
+		}
 
-        if (0 < RetreatReason?.Length) { Host.Log("Into Station, hostiles on local, return main"); return MainStep; }
-
+        if (0 < RetreatReason?.Length)
+			{ Host.Log("Hostiles on local, but I'm safe into Station ... taking a nap");
+			Host.Delay(4111);
+			return MainStep;
+			}
+		Random rnd = new Random();
+		int DelayTime = rnd.Next(MinimDelayUndock, MaximDelayUndock);
+			Host.Log("Keep your horses for :  " + DelayTime+ " s ");
+			Host.Delay( DelayTime*1000);
         Undock();
     }
 
     if (ReadyForManeuver)
     {
-        DroneEnsureInBay();
-        Host.Log("ready for rats");
+        DroneEnsureInBay(); 
+
+        Host.Log("Refreshing news: I'm ready for rats");
         if (0 == DronesInSpaceCount && 0 == ListRatOverviewEntry?.Length)
         {
-            Host.Log("drones in space 0 going to asteroids or anomaly");
+           // Host.Log("drones in space 0 going to asteroids or anomaly"); //used for debug
 
             if (ReadyForManeuver)
             {
+
                 if (OreHoldFilledForOffload)
                 {
                     ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
                     return MainStep;
                 }
 
-                if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck.Length > 0) && (ListCelestialObjects?.Length > 0))
-                    return InBeltMineStep;
+				if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length)
+					&& (listOverviewCommanderWreck?.Length > 0)
+					&& (ListCelestialObjects?.Length > 0))
+				return InBeltMineStep;
 
                 if (RattingAnomaly)
                 {
-                    Host.Log("I have anomaly??");
+						Host.Log("I would like to spin around rocks");
                     return TakeAnomaly;
                 }
                 if (RattingAsteroids)
                 {
-                    Host.Log("no rats arround, no anomaly, taking an asteroid from listSurroundingsButton");
+						Host.Log("Maybe some Asteroids bring some cool rats? :)");
                     InitiateWarpToMiningSite();
                     return MainStep;
                 }
@@ -245,11 +333,13 @@ Func<object> MainStep()
 
     }
 
-    ModuleMeasureAllTooltip();
+	ModuleMeasureAllTooltip();
 
-    if (ActivateHardener)
-        ActivateHardenerExecute();
-    return InBeltMineStep;
+	if (ActivateHardener)
+		ActivateHardenerExecute();
+	if (ActivateOmni)	
+		ActivateOmniExecute();
+	return InBeltMineStep;
 }
 
 void CloseModalUIElement()
@@ -267,7 +357,6 @@ void CloseWindowTelecom()
 }
 public void CloseWindowOther()//thx Terpla
 {
-    //Host.Log("close WindowOther");
     var windowOther = Sanderling?.MemoryMeasurementParsed?.Value?.WindowOther?.FirstOrDefault();
 
     //	if close button not visible then move mouse to the our window
@@ -285,7 +374,7 @@ public void CloseWindowOther()//thx Terpla
 }
 void DroneLaunch()
 {
-    Host.Log("launch drones.");
+    Host.Log("Launching my Vipers");
     Sanderling.MouseClickRight(DronesInBayListEntry);
     Sanderling.MouseClickLeft(Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("launch", RegexOptions.IgnoreCase));
 }
@@ -300,13 +389,12 @@ void DroneEnsureInBay()
 
 void DroneReturnToBay()
 {
-    Host.Log("return drones to bay.");
+    Host.Log("Inconceivable to forget my Vipers here");
     //Sanderling.MouseClickRight(DronesInSpaceListEntry);
     //Sanderling.MouseClickLeft(Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("return.*bay", RegexOptions.IgnoreCase));
      Sanderling.KeyboardPressCombined(new[]{ targetLockedKeyCode, VirtualKeyCode.VK_R });//if you like 
 }
 
-//var ShipManeuverStatus = Measurement?.ShipUi?.Indication?.ManeuverType;
 
 Func<object> DefenseStep()
 {
@@ -342,7 +430,7 @@ Func<object> DefenseStep()
 
     if (ActivateArmorRepairer == true || ArmorHpPercent < StartArmorRepairerHitPoints)
     {
-        Host.Log("ArmorHpPercent < 95");
+        Host.Log("Armor integrity < "  + StartArmorRepairerHitPoints + "%");
         ActivateArmorRepairerExecute();
     }
 
@@ -351,11 +439,12 @@ Func<object> DefenseStep()
 
     if (DefenseExit)
     { 
-	Host.Log("exit defense.");
+	//	Host.Log("exit defense."); // used for debug
 	return null; 
 	}
     if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
 		return InBeltMineStep;
+	
     if (null == targetSelected)
         LockTarget();
 
@@ -368,27 +457,22 @@ Func<object> DefenseStep()
     if (null != targetSelected)
     {
         if (shouldAttackTarget)
-        { if (Measurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false).DistanceMax < WeaponRange)
+        {
+		if (Measurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false).DistanceMax < WeaponRange)
             ActivateWeaponExecute();
-                if (droneInLocalSpaceIdle && (Measurement?.Target?.Length > 0))
-    {
-        Host.Log("drones idle");
-        Sanderling.KeyboardPress(attackDrones);
-        Host.Log("engage target");
-    }
-            }
+		if (droneInLocalSpaceIdle && (Measurement?.Target?.Length > 0))
+			{
+				//Host.Log("My drones are lazy now ...");//used for debug
+				Sanderling.KeyboardPress(attackDrones);
+				Host.Log("Vipers message: Sir! Yes Sir! We engage the target");
+			}
+        }
         else
             UnlockTarget();
     }
     if (Measurement?.Target?.Length < TargetCountMax && 1 < ListRatOverviewEntry?.Count())
         LockTarget();
 
-  /*  if (droneInLocalSpaceIdle && (Measurement?.Target?.Length > 0))
-    {
-        Host.Log("drones idle");
-        Sanderling.KeyboardPress(attackDrones);
-        Host.Log("engage target");
-    }*/
     if (EWarToAttack?.Count() > 0)//thx pikacuq
     {
         var EWarSelected = EWarToAttack?.FirstOrDefault(target => target?.IsSelected ?? false);
@@ -405,9 +489,9 @@ Func<object> DefenseStep()
 
         else
         {
-            //Host.Log("drones change to ewar target"); // it was for testing
+            //Host.Log("drones change to ewar target"); // it was for debug
             Sanderling.KeyboardPress(attackDrones);
-            Host.Log("engage Ewar target ");
+            Host.Log("Some nasty rats, engaging them ");
         }
     }
     if (0 == ListRatOverviewEntry?.Count())
@@ -419,29 +503,31 @@ Func<object> DefenseStep()
 }
 
 
+var SiteFinished =false;
 Func<object> InBeltMineStep()
 {
 var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
-    if (RattingAnomaly && (0 < listOverviewEntryFriends.Length || ListCelestialToAvoid?.Length>0 ) && 0 < ListRatOverviewEntry?.Length )
-        if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
+    if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length>0 ) && 0 < ListRatOverviewEntry?.Length && ReadyForManeuver )
+	{       if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
    	    {
-		Host.Log("presence of friends on site, I ignore this anomaly and take another one");
-		ActivateArmorRepairerExecute();//to be sure I stay alove, rats can target me
+		Host.Log("Presence of friends on site! I'm doing you a favor and ignore this anomaly and a second favor to take another one(anomaly)");
+		ActivateArmorRepairerExecute();//to be sure I stay alive, rats can target me
         return TakeAnomaly;
 		}
+	}
     if ((ReadyForManeuver) && (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
     {
         Orbitkeyboard();
 
         if (DefenseEnter)
         {
-            Host.Log("enter defense.");
+            //Host.Log("enter defense.");
             return DefenseStep;
         }
     }
 
     EnsureWindowInventoryOpen();
-    if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck.Length)
+    if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck?.Length)
 	{
 		if(!(listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 10000))
         StopAfterburner();
@@ -449,12 +535,13 @@ var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(te
 		ActivateAfterburnerExecute();
         if (LootButton != null)
             Sanderling.MouseClickLeft(LootButton);
-        if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )//&& (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Approach || Measurement?.ShipUi?.SpeedMilli<5000))
+        if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )
             ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
 	}
-    else
+    else if (( OreHoldFilledForOffload || 0 < listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length)
  	{
-        Host.Log("site finished, return to main step");
+        Host.Log("Im coolest! Site finished! "); 
+		SiteFinished =true;	
         return MainStep;
 	}
     return InBeltMineStep;
@@ -521,7 +608,7 @@ Sanderling.Accumulation.IShipUiModule[] SetModuleWeapon =>
 	Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false)?.ToArray();
 
 int?		WeaponRange => SetModuleWeapon?.Select(module =>
-	module?.TooltipLast?.Value?.RangeOptimal ?? module?.TooltipLast?.Value?.RangeMax ?? module?.TooltipLast?.Value?.RangeWithin ?? 0)?.DefaultIfEmpty(0)?.Min();;
+	module?.TooltipLast?.Value?.RangeOptimal ?? module?.TooltipLast?.Value?.RangeMax ?? module?.TooltipLast?.Value?.RangeWithin ?? 0)?.DefaultIfEmpty(0)?.Min();
 	
 string OverviewTypeSelectionName =>
     WindowOverview?.Caption?.RegexMatchIfSuccess(@"\(([^\)]*)\)")?.Groups?[1]?.Value;
@@ -621,7 +708,7 @@ void EnsureWindowInventoryOpen()
 {
     if (null != WindowInventory)
         return;
-    Host.Log("open Inventory.");
+   // Host.Log("open Inventory.");
     Sanderling.MouseClickLeft(Measurement?.Neocom?.InventoryButton);
     Host.Delay(1111);
 }
@@ -668,7 +755,7 @@ void InInventoryUnloadItemsTo(string DestinationContainerName)
             ?.FirstOrDefault(entry => entry?.Text?.RegexMatchSuccessIgnoreCase(DestinationContainerLabelRegexPattern) ?? false);
 
         if (null == DestinationContainer)
-            Host.Log("error: Inventory entry labeled '" + DestinationContainerName + "' not found");
+            Host.Log("Houston, we have a problem: '" + DestinationContainerName + "' not found");
 
         Sanderling.MouseDragAndDrop(oreHoldItem, DestinationContainer);
     }
@@ -679,14 +766,14 @@ bool InitiateWarpToMiningSite()	=>
 
 MemoryStruct.IMenuEntry PickNextMiningSiteFromSystemMenu(IReadOnlyList<MemoryStruct.IMenuEntry> availableMenuEntries)
 {
-	Host.Log("I am seeing " + availableMenuEntries?.Count.ToString() + " mining sites to choose from.");
+	Host.Log("Hubble says he saw  " + availableMenuEntries?.Count.ToString() + " mining sites to choose from.");
 
 	var nextSite =
 		availableMenuEntries
 		?.OrderBy(menuEntry => visitedLocations.ToList().IndexOf(menuEntry?.Text))
 		?.FirstOrDefault();
 
-	Host.Log("I pick '" + nextSite?.Text + "' as next mining site, based on the intent to rotate through the mining sites and recorded previous locations.");
+	Host.Log("I pick in order '" + nextSite?.Text + "' as next mining site. You like it or not, c'est la vie :p");
 	return nextSite;
 }
 
@@ -694,7 +781,7 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 	string submenuLabel,
 	Func<IReadOnlyList<MemoryStruct.IMenuEntry>, MemoryStruct.IMenuEntry> pickPreferredDestination = null)
 {
-	Host.Log("Attempt to initiate dock to or warp to menu entry in submenu '" + submenuLabel + "'");
+	Host.Log("Preparing engines for '" + submenuLabel + "'");
 	
 	var listSurroundingsButton = Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton;
 	
@@ -704,7 +791,7 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 
 	if(null == submenuEntry)
 	{
-		Host.Log("Submenu '" + submenuLabel + "' not found in the solar system menu.");
+		Host.Log("Failure on telemetry systems: Submenu '" + submenuLabel + "' not found.");
 		return true;
 	}
 
@@ -716,7 +803,7 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 
 	if(destinationMenuEntry == null)
 	{
-		Host.Log("Failed to open submenu '" + submenuLabel + "' in the solar system menu.");
+		Host.Log("My fingers failed to open submenu '" + submenuLabel + "' in the solar system menu.");
 		return true;
 	}
 
@@ -726,7 +813,7 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 
 	if(destinationMenuEntry == null)
 	{
-		Host.Log("Failed to open actions menu for '" + destinationMenuEntry.Text + "' in the solar system menu.");
+		Host.Log("I'm drunk? Failed to open actions menu for '" + destinationMenuEntry.Text + "' in the solar system menu.");
 		return true;
 	}
 	var menuResultaction = actionsMenu?.Entry.ToArray();
@@ -735,12 +822,12 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 
 	if (maneuverMenuEntry?.Text != "Warp to Within")
 	{
-	Host.Log("not a good menu");
+	// Host.Log("not a good menu");//used for debug
 	return true;
 	}
 	if (maneuverMenuEntry?.Text == "Warp to Within")
 	{
-		Host.Log("initiating '" + maneuverMenuEntry.Text + "' on '" + destinationMenuEntry?.Text + "'");
+		Host.Log("Prepare your engines for '" + maneuverMenuEntry.Text + "' on '" + destinationMenuEntry?.Text + "'");
 		
 		Sanderling.MouseClickRight(maneuverMenuEntry);
 		
@@ -748,12 +835,12 @@ bool InitiateDockToOrWarpToLocationInSolarSystemMenu(
 		var menuResultWarpDestination = menuResultats?.Entry.ToArray();
 		if (menuResultWarpDestination[0].Text !=  "Within 0 m")
 		{
-		Host.Log("Failed to open the kinder '" + destinationMenuEntry.Text + "' in the solar system menu.");
+		Host.Log("Failed to open the kinder egg '" + destinationMenuEntry.Text + "' in the solar system menu.");
 		return true;
 		}
 		else
 		{
-		Host.Log("initiating  warp on '" + destinationMenuEntry?.Text + "'");
+		Host.Log("'Engines' to Picard:initiating  warp on '" + destinationMenuEntry?.Text + "'");
 		
 		ClickMenuEntryOnMenuRoot(menuResultWarpDestination[0], "within 0 m");
    		Host.Delay(8000);
@@ -775,7 +862,7 @@ void UnlockTarget()
     var targetSelected = Measurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false);
     Sanderling.MouseClickRight(targetSelected);
     Sanderling.MouseClickLeft(MenuEntryUnLockTarget);
-    Host.Log("this is not a target");
+    Host.Log("sorry, this is not a target");
 }
 void Undock()
 {
@@ -791,13 +878,15 @@ void Undock()
 
 void ModuleMeasureAllTooltip()
 {
-	Host.Log("measure tooltips of all modules.");
+	Host.Log("Your modules have to be somewhere");
 	
 		var armorRapairCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsArmorRepairer ?? false);
-		//var afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((m => m?.TooltipLast?.Value?.IsAfterburner ?? false) || (m => m?.TooltipLast?.Value?.IsMicroWarpDrive?? false));
-	//	(module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false));
 		var afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false)));
-	while( (armorRapairCount < ArmorRepairsCount) || (afterburnersCount <  AfterburnersCount)	)
+		var hardenersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsHardener ?? false);
+		var omniCount  = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(module => module?.TooltipLast?.Value?.LabelText?.Any(
+					label => label?.Text?.RegexMatchSuccess(OmniSup, System.Text.RegularExpressions.RegexOptions.IgnoreCase) ?? false) ?? false);
+	while( (armorRapairCount < ArmorRepairsCount) || (afterburnersCount <  AfterburnersCount)
+			|| (hardenersCount <  HardenersCount)|| (omniCount <  OmniCount)	)
 	{
 		if(Sanderling.MemoryMeasurementParsed?.Value?.IsDocked ?? false)
 			break;
@@ -806,17 +895,18 @@ void ModuleMeasureAllTooltip()
 			if(null == NextModule)
 				break;
 	
-			Host.Log("measure module.");
+			Host.Log("This circuit is all right? let's measure this module");
 			//	take multiple measurements of module tooltip to reduce risk to keep bad read tooltip.
 			Sanderling.MouseMove(NextModule);
 			Sanderling.WaitForMeasurement();
 			Sanderling.MouseMove(NextModule);
 		}		
-	
-
+	omniCount  = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(module => module?.TooltipLast?.Value?.LabelText?.Any(
+					label => label?.Text?.RegexMatchSuccess(OmniSup, System.Text.RegularExpressions.RegexOptions.IgnoreCase) ?? false) ?? false);
+		hardenersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsHardener ?? false);
 		armorRapairCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count(m => m?.TooltipLast?.Value?.IsArmorRepairer ?? false);
 		afterburnersCount = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule.Count((module => (module?.TooltipLast?.Value?.IsAfterburner ?? false) || (module?.TooltipLast?.Value?.IsMicroWarpDrive?? false)));
-		Host.Log(  " Armor Repair count = " + armorRapairCount + ", Afterburners = " + afterburnersCount + " " );
+		Host.Log(  " Armor Repair count = " + armorRapairCount + "; Afterburners count = " + afterburnersCount + " ;     Hardeners count = " + hardenersCount + " ;  Omni count = " + omniCount + " " );
 
 	}
 }
@@ -826,7 +916,7 @@ void ActivateHardenerExecute()
     var SubsetModuleHardener =
         Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule
         ?.Where(module => module?.TooltipLast?.Value?.IsHardener ?? false);
-
+ 
     var SubsetModuleToToggle =
         SubsetModuleHardener
         ?.Where(module => !(module?.RampActive ?? false));
@@ -898,7 +988,21 @@ void StopAfterburner()
         ?.Where(module => (module?.RampActive ?? false));
 
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
-    { ModuleToggle(Module); Host.Log("stop afterburner to warp faster"); }
+    { ModuleToggle(Module); //Host.Log("stop afterburner "); //used for debug
+	}
+}
+void ActivateOmniExecute()
+{
+    var SubsetModuleOmni =
+		Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.LabelText?.Any(
+		label => label?.Text?.RegexMatchSuccess(OmniSup, System.Text.RegularExpressions.RegexOptions.IgnoreCase) ?? false) ?? false);
+
+    var SubsetModuleToToggle =
+        SubsetModuleOmni
+        ?.Where(module => !(module?.RampActive ?? false));
+
+    foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
+        ModuleToggle(Module);
 }
 void ModuleToggle(Sanderling.Accumulation.IShipUiModule Module)
 {
@@ -915,19 +1019,49 @@ void ModuleToggle(Sanderling.Accumulation.IShipUiModule Module)
 
 void MemoryUpdate()
 {
-    RetreatUpdate();
-    UpdateLocationRecord();
-    OffloadCountUpdate();
-}
+ 	RetreatUpdate();
+	UpdateLocationRecord();
+	OffloadCountUpdate();
+	Timers ();
 
+}
+var logoutme= false;
+var eveServerDT = DateTime.Today.AddDays(0).AddHours(11).AddMinutes(0);
+var logoutgame = (eveServerDT-DateTime.UtcNow ).TotalMinutes;
+void Timers ()
+{
+var now = DateTime.UtcNow;
+	//Host.Log("utc time Start Session at  :  " + now.ToString(" dd/MM/yyyy hh:mm:ss") + " "); //used for debug
+var CloseGameSession = (playSession - now).TotalMinutes;
+//	Host.Log("Total minutes until session Is CLOSE :  " + CloseGameSession + " "); //used for debug
+//	Host.Log("Ttimespan until session Is CLOSE :  " +TimeSpan.FromMinutes(CloseGameSession).ToString(@"dd\:hh\:mm")+ " "); //used for debug	
+
+if (now >eveServerDT)
+	{//	Host.Log("The DT was today at :  " + eveServerDT.ToString(" dd/MM/yyyy hh:mm:ss") + " "); //used for debug
+		eveServerDT = DateTime.Today.AddDays(1).AddHours(11).AddMinutes(0);
+	}
+var eveSafeDT = eveServerDT.AddHours(-hoursToDT).AddMinutes(-minutesToDT);
+	// Host.Log("Next safe logout at:  " + eveSafeDT.ToString(" dd/MM/yyyy hh:mm:ss")  + " "); // used for debug
+var CloseGameDT = (eveSafeDT - now).TotalMinutes;
+var LogoutGame = Math.Min(CloseGameDT,CloseGameSession);
+	//	Host.Log("Closer Logout Game in :   " + TimeSpan.FromMinutes(LogoutGame).ToString(@"dd\:hh\:mm") + " ; if I do not reach the offload limit count "); //used for debug
+if (playSession !=DateTime.UtcNow)
+{
+logoutgame = LogoutGame;
+//Host.Log("Total minutes until session Is CLOSE :  " + logoutgame + " ");
+}
+	if (LogoutGame<0) 
+		logoutme = true;
+}
 
 bool MeasurementEmergencyWarpOutEnter =>
     !(Measurement?.IsDocked ?? false) && !(EmergencyWarpOutHitpointPercent < ArmorHpPercent);
 
 void RetreatUpdate()
 {
-    RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal) || (listOverviewDreadCheck?.Length > 0) || (listOverviewEntryEnemy?.Length > 0) ? "hostile or neutral in local" : null;
-
+    RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal) 
+	|| (listOverviewDreadCheck?.Length > 0) || (listOverviewEntryEnemy?.Length > 0) || reasonDrones == true 
+	|| (logoutme == true && SiteFinished ==true ) ? "reds in local or session time elapsed" : null;
     if (!MeasurementEmergencyWarpOutEnter)
         return;
 
@@ -937,7 +1071,7 @@ void RetreatUpdate()
     if (!MeasurementEmergencyWarpOutEnter)
         return;
 
-    RetreatReasonPermanent = "Armor hp";
+    RetreatReasonPermanent = "They messed my Armor hp or session is expired??";
 }
 void UpdateLocationRecord()
 {
@@ -994,7 +1128,7 @@ void ClickMenuEntryOnPatternMenuRoot(IUIElement MenuRoot, string MenuEntryRegexP
     }
 }
 
-
+var reasonDrones = false;
 Func<object> TakeAnomaly()
 {
     var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
@@ -1005,12 +1139,14 @@ Func<object> TakeAnomaly()
 
     var scanResultCombatSite = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(AnomalySuitableGeneral);
 
-    Host.Log("working at ignoring anomalies :) be patient");
+    Host.Log("Telemetry instruments: working at ignoring anomalies :) be patient");
+   if ( (DronesInSpaceCount + DronesInBayCount ) < DroneNumber)
+	{
+	reasonDrones = true;
 
+	}
    if (combatTab != OverviewTabActive)
 	{ 
-		    //Host.Log("changing to your ratting tab : " +combatTab.Label.Text+ " !"); // if you want them
-		    //	Console.Beep(500, 200);
 	Sanderling.MouseClickLeft(combatTab);
 		Host.Delay(1111);
 	}
@@ -1030,13 +1166,13 @@ Func<object> TakeAnomaly()
     }
 
     if (null == scanResultCombatSite)
-        Host.Log("    I don't have the named anomaly, review the bot for taking the asteroids or just wait ");
+        Host.Log(" Hubble: no more anomalies! If you dont like the asteroids then admire the Space. ");
     if ((null != scanResultCombatSite) && (null == UndesiredAnomaly))
     {
         Sanderling.MouseClickRight(scanResultCombatSite);
         var menuResult = Measurement?.Menu?.ToList();
         if (null == menuResult)
-        { Host.Log("    ignore result  ?? just cheking  "); return TakeAnomaly; }
+        { Host.Log(" Telemety calibration: not expected resultats. "); return TakeAnomaly; }
 		else
 		{
         var menuResultWarp = menuResult?[0].Entry.ToArray();
@@ -1050,7 +1186,7 @@ Func<object> TakeAnomaly()
 			else
 			{        
 			var menuResultWarpDestination = Measurement?.Menu?.ToList() ? [1].Entry.ToArray();
-			Host.Log("warping to anomaly  ");
+			Host.Log(" Hooray, warping to anomaly  ");
 			ClickMenuEntryOnMenuRoot(menuResultWarpDestination[4], "within 50 km");
 		if (probeScannerWindow != null)
 			Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
@@ -1074,7 +1210,7 @@ void Orbitkeyboard()
 
     ActivateAfterburnerExecute();
     Host.Delay(1111);
-    Host.Log("afterburner activated");
+    Host.Log("I smell roses ... better to Orbit arround here");
 }
 void OffloadCountUpdate()
 {
@@ -1089,6 +1225,7 @@ void OffloadCountUpdate()
     LastCheckOreHoldFillPercent = OreHoldFillPercentSynced;
 }
 
+
 bool AnomalySuitableGeneral(MemoryStruct.IListEntry scanResult) =>
     scanResult?.CellValueFromColumnHeader(AnomalyToTakeColumnHeader)?.RegexMatchSuccessIgnoreCase(AnomalyToTake) ?? false;
 
@@ -1099,7 +1236,7 @@ bool IgnoreAnomaly(MemoryStruct.IListEntry scanResult) =>
 scanResult?.CellValueFromColumnHeader(IgnoreColumnheader)?.RegexMatchSuccessIgnoreCase(IgnoreAnomalyName) ?? false;
 
 bool IsEnemyBackgroundColor(ColorORGB color) =>
-    color.OMilli == 500 && color.RMilli == 750 && color.GMilli == 0 && color.BMilli == 600;
+    color.OMilli == 500 && color.RMilli == 750 && color.GMilli == 0 && color.BMilli == 0;
 
 
 bool IsFriendBackgroundColor(ColorORGB color) =>
@@ -1110,3 +1247,4 @@ bool IsNeutralOrEnemy(IChatParticipantEntry participantEntry) =>
      new[] { "good standing", "excellent standing", "Pilot is in your (fleet|corporation|alliance)", "Pilot is an ally in one or more of your wars", }
      .Any(goodStandingText =>
         flagIcon?.HintText?.RegexMatchSuccessIgnoreCase(goodStandingText) ?? false)) ?? false);
+
