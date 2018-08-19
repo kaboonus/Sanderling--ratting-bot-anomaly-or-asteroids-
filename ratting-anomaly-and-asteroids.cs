@@ -305,7 +305,8 @@ Func<object> MainStep()
 
             if (ReadyForManeuver)
             {
-
+                if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck?.Length > 0) && (ListCelestialObjects?.Length > 0))
+                    return InBeltMineStep;
                 if (OreHoldFilledForOffload)
                 {
                     ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
