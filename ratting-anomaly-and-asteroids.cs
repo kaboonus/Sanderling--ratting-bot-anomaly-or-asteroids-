@@ -96,7 +96,7 @@ var RattingAsteroids = false;	//	when this is set to true, you take asteroids
 // SESSION/DT TImers
 
 var minutesToDT = 15; //value in minutes before the DT of server ( -1min)
-var hoursToDT = 1;//value in h before the DT-1min
+var hoursToDT = 1;//value in h before the DT of server ( -1min already)
 
 var hoursToSession = 5;
 var minutesToSession = 11;
@@ -181,9 +181,10 @@ const string StatusStringFromDroneEntryTextRegexPattern = @"\((.*)\)";
 static public string StatusStringFromDroneEntryText(this string droneEntryText) => droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
 var startSession = DateTime.Now; // alternative: DateTime.UtcNow;
 var playSession = DateTime.UtcNow.AddHours(hoursToSession).AddMinutes(minutesToSession);
+var dateAndTime = DateTime.UtcNow;
+var date = dateAndTime.Date;
 
-
-
+var eveRealServerDT =date.AddHours(11).AddMinutes(-1);
 //	<- end of configuration section
 
 
@@ -204,7 +205,7 @@ Host.Log(
 	" ; drones in space( from total): " + DronesInSpaceCount + "(" +(DronesInSpaceCount + DronesInBayCount)+ ")"+
 	" ; targeted rats :  " + Measurement?.Target?.Length+
 	" ; cargo percent : " + OreHoldFillPercent + "%" +
-	" ; Closer logout in(days /h/ m) : "  + TimeSpan.FromMinutes(logoutgame).ToString(@"dd\:hh\:mm")+
+	" ; Logout in (days /h/ m) : "  + TimeSpan.FromMinutes(logoutgame).ToString(@"dd\:hh\:mm")+
 	" ; current offload count (max limit): " + OffloadCount + "("+ LimitOffloadCount+")" +
 	" ; nextAct  : " + NextActivity?.Method?.Name);
 
@@ -713,6 +714,7 @@ void EnsureWindowInventoryOpen()
     Sanderling.MouseClickLeft(Measurement?.Neocom?.InventoryButton);
     Host.Delay(1111);
 }
+
 void EnsureWindowInventoryOpenActiveShip()
 {
     EnsureWindowInventoryOpen();
@@ -721,6 +723,7 @@ void EnsureWindowInventoryOpenActiveShip()
 
     if (!(inventoryActiveShip?.IsSelected ?? false))
         Sanderling.MouseClickLeft(inventoryActiveShip);
+
 }
 
 
@@ -1027,32 +1030,33 @@ void MemoryUpdate()
 
 }
 var logoutme= false;
-var eveServerDT = DateTime.Today.AddDays(0).AddHours(11).AddMinutes(0);
-var logoutgame = (eveServerDT-DateTime.UtcNow ).TotalMinutes;
+var eveNextServerDT = DateTime.UtcNow;
+var logoutgame = (eveRealServerDT-DateTime.UtcNow ).TotalMinutes;
 void Timers ()
 {
 var now = DateTime.UtcNow;
-	//Host.Log("utc time Start Session at  :  " + now.ToString(" dd/MM/yyyy hh:mm:ss") + " "); //used for debug
 var CloseGameSession = (playSession - now).TotalMinutes;
-//	Host.Log("Total minutes until session Is CLOSE :  " + CloseGameSession + " "); //used for debug
-//	Host.Log("Ttimespan until session Is CLOSE :  " +TimeSpan.FromMinutes(CloseGameSession).ToString(@"dd\:hh\:mm")+ " "); //used for debug	
-
-if (now >eveServerDT)
-	{//	Host.Log("The DT was today at :  " + eveServerDT.ToString(" dd/MM/yyyy hh:mm:ss") + " "); //used for debug
-		eveServerDT = DateTime.Today.AddDays(1).AddHours(11).AddMinutes(0);
+if (now.Day == eveRealServerDT.Day)
+	{	
+		eveNextServerDT = eveRealServerDT.AddDays(1);
 	}
-var eveSafeDT = eveServerDT.AddHours(-hoursToDT).AddMinutes(-minutesToDT);
-	// Host.Log("Next safe logout at:  " + eveSafeDT.ToString(" dd/MM/yyyy hh:mm:ss")  + " "); // used for debug
+else 
+	{
+		eveNextServerDT = eveRealServerDT.AddDays(0);
+	}
+	
+var eveSafeDT = eveNextServerDT.AddHours(-hoursToDT).AddMinutes(-minutesToDT);
 var CloseGameDT = (eveSafeDT - now).TotalMinutes;
 var LogoutGame = Math.Min(CloseGameDT,CloseGameSession);
-	//	Host.Log("Closer Logout Game in :   " + TimeSpan.FromMinutes(LogoutGame).ToString(@"dd\:hh\:mm") + " ; if I do not reach the offload limit count "); //used for debug
 if (playSession !=DateTime.UtcNow)
 {
 logoutgame = LogoutGame;
-//Host.Log("Total minutes until session Is CLOSE :  " + logoutgame + " ");
+
 }
 	if (LogoutGame<0) 
-		logoutme = true;
+	{	logoutme = true;
+		Host.Log("logoutgame " + logoutme + " ");
+		}
 }
 
 bool MeasurementEmergencyWarpOutEnter =>
@@ -1060,7 +1064,7 @@ bool MeasurementEmergencyWarpOutEnter =>
 
 void RetreatUpdate()
 {
-    RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal) 
+    RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal)
 	|| (listOverviewDreadCheck?.Length > 0) || (listOverviewEntryEnemy?.Length > 0) || reasonDrones == true 
 	|| (logoutme == true && SiteFinished ==true ) ? "reds in local or session time elapsed" : null;
     if (!MeasurementEmergencyWarpOutEnter)
