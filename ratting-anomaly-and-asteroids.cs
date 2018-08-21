@@ -1036,7 +1036,7 @@ void Timers ()
 {
 var now = DateTime.UtcNow;
 var CloseGameSession = (playSession - now).TotalMinutes;
-if (now.Day == eveRealServerDT.Day)
+if (now == eveRealServerDT)
 	{	
 		eveNextServerDT = eveRealServerDT.AddDays(1);
 	}
