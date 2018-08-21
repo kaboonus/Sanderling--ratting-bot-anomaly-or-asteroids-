@@ -1036,11 +1036,11 @@ void Timers ()
 {
 var now = DateTime.UtcNow;
 var CloseGameSession = (playSession - now).TotalMinutes;
-if (now == eveRealServerDT)
+if (now.Day ==eveRealServerDT.Day && now.TimeOfDay > eveRealServerDT.TimeOfDay )
 	{	
 		eveNextServerDT = eveRealServerDT.AddDays(1);
 	}
-else 
+ if (now.TimeOfDay < eveRealServerDT.TimeOfDay  && ( now.Day>= eveRealServerDT.Day  )) 
 	{
 		eveNextServerDT = eveRealServerDT.AddDays(0);
 	}
