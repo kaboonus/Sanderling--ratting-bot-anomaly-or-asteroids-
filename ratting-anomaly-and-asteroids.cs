@@ -460,6 +460,7 @@ ITreeViewEntry InventoryActiveShipContainer
 IInventoryCapacityGauge OreHoldCapacityMilli =>
     (InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
 int? OreHoldFillPercent =>OreHoldCapacityMilli?.Max>0 ? ((int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max )):0 ;
+var reasonCapsule  = false;
 Sanderling.Accumulation.IShipUiModule[] SetModuleWeapon =>
 	Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false)?.ToArray();
 int?		WeaponRange => SetModuleWeapon?.Select(module =>
