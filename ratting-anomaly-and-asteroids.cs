@@ -129,6 +129,10 @@ Host.Log(
 	" ; current offload count (max limit): " + OffloadCount + "("+ LimitOffloadCount+")" +
 	" ; nextAct  : " + NextActivity?.Method?.Name);
 CloseModalUIElement();
+if(Measurement?.WindowOther != null)
+ CloseWindowOther();
+if(Measurement?.WindowTelecom != null)
+ CloseWindowTelecom();
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 {
 	if (listOverviewDreadCheck?.Length > 0)
@@ -143,7 +147,7 @@ if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 	{
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "align");
 	}
-	if (!returnDronesToBayOnRetreat ||null == WindowDrones ||  (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
+	if (!returnDronesToBayOnRetreat || null == WindowDrones || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
 	{
 	Host.Log("Picard : Yes, I warping home( I know ... I know ... Is an Miracle!!) ");
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
@@ -152,8 +156,6 @@ if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 		{ DroneEnsureInBay();}
 	continue;
 }
-if(Measurement?.WindowOther != null) CloseWindowOther();
-if(Measurement?.WindowTelecom != null) CloseWindowTelecom();
 NextActivity = NextActivity?.Invoke() as Func<object>;
 if(BotStopActivity == NextActivity)
 	break;	
@@ -180,8 +182,9 @@ Func<object> MainStep()
     if (Measurement?.IsDocked ?? false)
     {	
         if (0 < RetreatReasonPermanent?.Length || OffloadCount > LimitOffloadCount
-		||	logoutme == true  || OreHoldFillPercent == 101)
-        { Host.Log("permanent retreat = bot stop");
+		|| logoutme==true || reasonCapsule == true)
+        {
+        Host.Log("permanent retreat or you are in capsule = bot stop");
         	Sanderling.KeyboardPressCombined(new[]{ VirtualKeyCode.LMENU, VirtualKeyCode.SHIFT, VirtualKeyCode.VK_Q});
 		Host.Delay(1111);
 			if (reasonDrones == true) 
@@ -280,8 +283,9 @@ void DroneLaunch()
 }
 void DroneEnsureInBay()
 {
-    if (0 == DronesInSpaceCount)
+    if (null == WindowDrones || DronesInSpaceCount==0)
         return;
+     else
     DroneReturnToBay();
     Host.Delay(4444);
 }
@@ -407,10 +411,10 @@ Func<object> InBeltMineStep()
         if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )
             ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
 	}
-    else if (( OreHoldFilledForOffload || 0 < listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length)
+    else if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length)
  	{
         Host.Log("Im coolest! Site finished! "); 
-		SiteFinished =true;	
+		SiteFinished = true;	
         return MainStep;
 	}
     return InBeltMineStep;
@@ -455,7 +459,7 @@ ITreeViewEntry InventoryActiveShipContainer
 }
 IInventoryCapacityGauge OreHoldCapacityMilli =>
     (InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
-int? OreHoldFillPercent =>OreHoldCapacityMilli?.Max>0 ? ((int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max )):101 ;
+int? OreHoldFillPercent =>OreHoldCapacityMilli?.Max>0 ? ((int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max )):0 ;
 Sanderling.Accumulation.IShipUiModule[] SetModuleWeapon =>
 	Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false)?.ToArray();
 int?		WeaponRange => SetModuleWeapon?.Select(module =>
@@ -702,6 +706,7 @@ void ActivateHardenerExecute()
      var SubsetModuleToToggle =
         SubsetModuleHardener
         ?.Where(module => !(module?.RampActive ?? false));
+    if ( SubsetModuleHardener.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -713,6 +718,7 @@ void ActivateArmorRepairerExecute()
     var SubsetModuleToToggle =
         SubsetModuleArmorRepairer
         ?.Where(module => !(module?.RampActive ?? false));
+    if ( SubsetModuleArmorRepairer.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -724,6 +730,7 @@ void StopArmorRepairer()
     var SubsetModuleToToggle =
         SubsetModuleArmorRepairer
         ?.Where(module => (module?.RampActive ?? false));
+    if ( SubsetModuleArmorRepairer.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -746,6 +753,7 @@ void ActivateAfterburnerExecute()
     var SubsetModuleToToggle =
         SubsetModuleAfterburner
         ?.Where(module => !(module?.RampActive ?? false));
+    if ( SubsetModuleAfterburner.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -757,6 +765,7 @@ void StopAfterburner()
     var SubsetModuleToToggle =
         SubsetModuleAfterburner
         ?.Where(module => (module?.RampActive ?? false));
+    if ( SubsetModuleAfterburner.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
     {
 		ModuleToggle(Module); 
@@ -770,6 +779,7 @@ void ActivateOmniExecute()
     var SubsetModuleToToggle =
         SubsetModuleOmni
         ?.Where(module => !(module?.RampActive ?? false));
+    if ( SubsetModuleOmni.Count()>0)
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -823,7 +833,7 @@ void RetreatUpdate()
 {
     RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal)
 	|| (listOverviewDreadCheck?.Length > 0) || (listOverviewEntryEnemy?.Length > 0) || reasonDrones == true 
-	|| (logoutme == true && SiteFinished ==true ) ? "reds in local or session time elapsed" : null;
+	|| (logoutme == true && SiteFinished ==true ) || reasonCapsule == true  ? "Capsule or reds in local or session time elapsed" : null;
     if (!MeasurementEmergencyWarpOutEnter)
         return;
     //	measure multiple times to avoid being scared off by noise from a single measurement. 
@@ -953,6 +963,14 @@ void Orbitkeyboard()
 }
 void OffloadCountUpdate()
 {
+    var CapsuleType = WindowInventory?.LeftTreeListEntry?.SelectMany(entry => new[] { entry }.Concat(entry.EnumerateChildNodeTransitive()))
+            ?.FirstOrDefault(entry => entry?.Text?.RegexMatchSuccessIgnoreCase("Capsule") ?? false);
+								
+    if (null !=CapsuleType )
+    {
+    reasonCapsule = true;
+    Host.Log("reason capsule "+reasonCapsule + " ");
+    }
     var OreHoldFillPercentSynced = OreHoldFillPercent;
     if (!OreHoldFillPercentSynced.HasValue)
         return;
