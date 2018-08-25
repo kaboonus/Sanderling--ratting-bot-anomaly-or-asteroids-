@@ -1,4 +1,10 @@
-/*V 1.1 and last(unless bugs) This bot ratting anomaly and/or asteroids; warp to asteroids at 0km and anomaly at 50
+/*V 1.1.02 and last(unless bugs) This bot ratting anomaly and/or asteroids; warp to asteroids at 0km and anomaly at 50, take the loot (or not, by ship type). Planning time by session or by time before DT, logout at the end of first timespan and stop bot. Protection from bumping 
+
+fixs:
+- because there are a lot of settings,  now when you are docked, you will have an review of principals settings
+- click open cargo only once
+- click on dock only once on retreat from reds
+- now when you dock, you get in mainstep. There was situations ( after too many dockings) when even if the position was actualized, he stay in first loop( also this happens because the first loop and entire script is more complicated now).
 GUIDE: ( and you have example at each variable in settings)
  fill in the values:
  -retreat from neutrals 
@@ -17,18 +23,24 @@ GUIDE: ( and you have example at each variable in settings)
  -and the limit of offload count
  -make reds background in overview ( see forum my post) https://forum.botengine.org/t/ratting-bot-anomaly-and-or-asteroids-with-sanderling/1206
  -hide the empty wrecks ( see photo on forum, my post)
- -DO NOT CHAT when you bot !! ( better hide the windos, except local, look on the photo on forum hot to do that in a manner 70%safe
-**********
-!IF you warp/dock etc manual is better to stop the bot
-!some features could not work on older versions of sanderling!!
+********** ATTENTION !! ######################
+! DO NOT CHAT when you bot !! ( better hide the windows, except local, look on the photo on forum hot to do that in a manner 70%safe
+! IF you warp/dock etc manual is better to stop the bot
+! Some features could not work on older versions of sanderling!!
 ! The smaller value between DT and session timer is taken in account ( and you can see this value in stats)
-+ attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
+! attention, because the local can do some false allarms (some "friends" had some bad standings even if he is blue)
+##### GOOD POINTS ########
++ protection from bumpings ( tested 2-3 times)
++ you can review your setting when you are docked , stop the bot and made changes 
 + the window local chat must be biggest possible, if in you system are 50 persons and your window have enter for 10 persons  you are kill meat
 + the belts are taken in order
-+ loot wrecks 
++ loot wreck, you can order in overview after mainicon, main Icon rats FIRST (collidables and wrecks are at the end). Also if you want only faction/officers set smaller offload capacity.yf you dont wanna loot, simply change the wreck name with ... (ex: mlqfkjhfbzeirfhjdbskdhizrkfjhihugizrzkjfvldkfvblkj , because this name didn't exist in game at all)
 + the symbol ♦ from types is for some drifters who appear near stations and asteroid belts
++ right before undock it check for reds on local; if they are present you stay in station until they gone(time + the undock delay)
++ if you want to dock ASAP when times up, comment the line 876 and unncomment 877 ( lines after bool MeasurementEmergencyWarpOutEnter). Else this it happens when times up AND sitefinished = true
+###### BAD POINTS ##########
 (-) It doesn't distinguish ewar web/scramble etc from targetpainting ( for example)
-(-) It doesnt take in account what participants are hidden in local chat  
+(-) It doesnt take in account what participants are hidden in local chat  ( so localchat is scrollable)( so avoid crowded systems)
 ###################
 Thx to:
 Viir
@@ -66,16 +78,17 @@ string runFromRats = "♦|Titan|Dreadnought|Autothysian";// you run from him
 string celestialOrbit = ""; //ex: broken|pirate gate
 string CelestialToAvoid = ""; // ex: Chemical Factory //this one make difference between haven rock and gas
 // wrecks commander etc
-string commanderNameWreck = "";// ex: Commander|Dark Blood|true|Shadow Serpentis|Dread Gurista|Domination Saint|Gurista Distributor|Sentient|Overseer|Spearhead|Dread Guristas|Estamel|Vepas|Thon|Kaikka|True Sansha|Chelm|Vizan|Selynne|Brokara|Dark Blood|Draclira|Ahremen|Raysere|Tairei|Cormack|Setele|Tuvan|Brynn|Domination|Tobias|Gotan|Hakim|Mizuro|wreck
+string commanderNameWreck = "wreck";// if you dont wanna loot, then you change the name with  any name impossible to exist ingame
+// ex: "Commander|Dark Blood|true|Shadow Serpentis|Dread Gurista|Domination Saint|Gurista Distributor|Sentient|Overseer|Spearhead|Dread Guristas|Estamel|Vepas|Thon|Kaikka|True Sansha|Chelm|Vizan|Selynne|Brokara|Dark Blood|Draclira|Ahremen|Raysere|Tairei|Cormack|Setele|Tuvan|Brynn|Domination|Tobias|Gotan|Hakim|Mizuro|wreck
 ////////
 //ratting tab, fill in with your own ratting tab
 string rattingTab = ""; // ex: combat
 int DroneNumber = 5;// set number of drones in space; ex: 5
 int TargetCountMax = 2; //target numbers; ex: 4
 //set  hardeners, repairer, set true if you want to run them all time, if not, there is set StartArmorRepairerHitPoints
-var ActivateHardener = true;// true or false
-var ActivateOmni = true; //true or false
-var ActivateArmorRepairer = true; // true or false
+var ActivateHardener = true;// true or false ;true for activated permanent
+var ActivateOmni = true; //true or false ; true for activated permanent
+var ActivateArmorRepairer = true; // true or false ; true for activated permanent
 string OmniSup = ""; // ex: Omnidirectional Tracking Link I
 // 	Number of ArmorRepairers and afterburners; Thx Terpla. Both armor repairers are managed in same time, if you have 2. 
 const int ArmorRepairsCount = 1; // how many you have
@@ -111,7 +124,7 @@ var dateAndTime = DateTime.UtcNow;
 var date = dateAndTime.Date;
 var eveRealServerDT =date.AddHours(11).AddMinutes(-1);
 //	<- end of configuration section
-
+var OnePush = true;
 Func<object> BotStopActivity = () => null;
 Func<object> NextActivity = MainStep;
 for(;;)
@@ -130,24 +143,33 @@ Host.Log(
 	" ; nextAct  : " + NextActivity?.Method?.Name);
 CloseModalUIElement();
 if(Measurement?.WindowOther != null)
- CloseWindowOther();
+    CloseWindowOther();
 if(Measurement?.WindowTelecom != null)
- CloseWindowTelecom();
+    CloseWindowTelecom();
+if (Measurement?.IsDocked ?? false)
+    MainStep();
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 {
 	if (listOverviewDreadCheck?.Length > 0)
 	{		Host.Log("I'm a chicken and I'm run from dread");
-	if (RattingAsteroids) {	StopAfterburner(); 	ActivateArmorRepairerExecute(); InitiateWarpToMiningSite(); }
+	if (RattingAsteroids)
+     {
+        StopAfterburner();
+        ActivateArmorRepairerExecute();
+        InitiateWarpToMiningSite();
+     }
 	}
 	Host.Log("Tactical retreat !! Better be a living cicken than a roasted bull! ");
-	Console.Beep(500, 200);
+	//Console.Beep(500, 200);// he will beep alot
 	StopAfterburner();
 	ActivateArmorRepairerExecute();
 	 if (Measurement?.ShipUi?.Indication?.ManeuverType == ShipManeuverTypeEnum.Orbit)
 	{
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "align");
 	}
-	if (!returnDronesToBayOnRetreat || null == WindowDrones || (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount))
+	if (ReadyForManeuver
+	&&(!returnDronesToBayOnRetreat || null == WindowDrones
+	|| (returnDronesToBayOnRetreat && 0 == DronesInSpaceCount)))
 	{
 	Host.Log("Picard : Yes, I warping home( I know ... I know ... Is an Miracle!!) ");
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
@@ -180,7 +202,8 @@ bool OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFil
 Func<object> MainStep()
 {
     if (Measurement?.IsDocked ?? false)
-    {	
+    {
+        ReviewSettings();	
         if (0 < RetreatReasonPermanent?.Length || OffloadCount > LimitOffloadCount
 		|| logoutme==true || reasonCapsule == true)
         {
@@ -203,24 +226,26 @@ Func<object> MainStep()
 		int DelayTime = rnd.Next(MinimDelayUndock, MaximDelayUndock);
 			Host.Log("Keep your horses for :  " + DelayTime+ " s ");
 			Host.Delay( DelayTime*1000);
-        Undock();
+        if (null == RetreatReason?.Length)
+             Undock();
+        else 
+            return MainStep;
     }
     if (ReadyForManeuver)
     {
         DroneEnsureInBay(); 
+        ModuleMeasureAllTooltip(); 
         Host.Log("Refreshing news: I'm ready for rats");
         if (0 == DronesInSpaceCount && 0 == ListRatOverviewEntry?.Length)
         {
 			if (ReadyForManeuver)
             {
-                if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length) && (listOverviewCommanderWreck?.Length > 0) && (ListCelestialObjects?.Length > 0))
-                    return InBeltMineStep;
                 if (OreHoldFilledForOffload)
                 {
                     ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
                     return MainStep;
                 }
-				if ((!OreHoldFilledForOffload) && (0 == ListRatOverviewEntry?.Length)
+				if ((!OreHoldFilledForOffload) && (0 <= ListRatOverviewEntry?.Length)
 					&& (listOverviewCommanderWreck?.Length > 0)
 					&& (ListCelestialObjects?.Length > 0))
 				return InBeltMineStep;
@@ -239,7 +264,7 @@ Func<object> MainStep()
         }
 
     }
-	ModuleMeasureAllTooltip();
+//	ModuleMeasureAllTooltip();
 	if (ActivateHardener)
 		ActivateHardenerExecute();
 	if (ActivateOmni)	
@@ -378,10 +403,9 @@ Func<object> DefenseStep()
     }
     return DefenseStep;
 }
-var SiteFinished =false;
+var SiteFinished = false;
 Func<object> InBeltMineStep()
 {
-	var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
     if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length>0 ) && 0 < ListRatOverviewEntry?.Length && ReadyForManeuver )
 	{   
 		if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
@@ -400,16 +424,15 @@ Func<object> InBeltMineStep()
         }
     }
     EnsureWindowInventoryOpen();
-    if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck?.Length)
+        if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck?.Length && (ReadyForManeuver))
 	{
-		if(!(listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 10000))
-        StopAfterburner();
-		else 		
-		ActivateAfterburnerExecute();
-        if (LootButton != null)
-            Sanderling.MouseClickLeft(LootButton);
-        if ((listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )
-            ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
+        if(!(listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 16000))
+            StopAfterburner();
+        else 		
+           ActivateAfterburnerExecute();
+        WreckLoot();  
+        LootingCargo();
+  
 	}
     else if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length)
  	{
@@ -417,7 +440,26 @@ Func<object> InBeltMineStep()
 		SiteFinished = true;	
         return MainStep;
 	}
+    if (!ReadyForManeuver)
+        return MainStep;
     return InBeltMineStep;
+}
+void WreckLoot()
+{  
+    if (OnePush == true && (listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 100) )
+     { 
+        ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
+        OnePush = false;
+     }
+}
+void LootingCargo ()
+{
+    var LootButton = Measurement?.WindowInventory?[0]?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Loot All"));
+    if (LootButton != null)
+     {  
+        Sanderling.MouseClickLeft(LootButton);
+        OnePush = true;
+     }
 }
 Sanderling.Parse.IMemoryMeasurement Measurement =>
     Sanderling?.MemoryMeasurementParsed?.Value;
@@ -457,9 +499,10 @@ ITreeViewEntry InventoryActiveShipContainer
         WindowInventory?.ActiveShipEntry?.TreeEntryFromCargoSpaceType( hasHold ? ShipCargoSpaceTypeEnum.OreHold : ShipCargoSpaceTypeEnum.General);
     }
 }
+//var OreHoldCapacityMilliMax =0;
 IInventoryCapacityGauge OreHoldCapacityMilli =>
     (InventoryActiveShipContainer?.IsSelected ?? false) ? WindowInventory?.SelectedRightInventoryCapacityMilli : null;
-int? OreHoldFillPercent =>OreHoldCapacityMilli?.Max>0 ? ((int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max )):0 ;
+int? OreHoldFillPercent => OreHoldCapacityMilli?.Max > 0 ? ((int?)((OreHoldCapacityMilli?.Used * 100) / OreHoldCapacityMilli?.Max )) : 0 ;
 var reasonCapsule  = false;
 Sanderling.Accumulation.IShipUiModule[] SetModuleWeapon =>
 	Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Where(module => module?.TooltipLast?.Value?.IsWeapon ?? false)?.ToArray();
@@ -473,7 +516,7 @@ Parse.IOverviewEntry[] ListRatOverviewEntry => WindowOverview?.ListView?.Entry?.
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum|prophet")) //Cruiser
-    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelatis|centatis|alvatis|pithatis|copatis|gistatis|apostle")) //Battlecruiser
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelatis|centatis|alvatis|pithatis|corpatis|gistatis|apostle")) //Battlecruiser
     ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"core\s|centus|alvus|pith\s|corpus|gist\s")) //Battleship
     ?.ThenBy(entry => entry?.DistanceMax ?? int.MaxValue)
     ?.ToArray();
@@ -508,7 +551,13 @@ Parse.IOverviewEntry[] EWarToAttack =>
 Parse.IOverviewEntry[] listOverviewCommanderWreck =>
     WindowOverview?.ListView?.Entry
     ?.Where(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(commanderNameWreck) ?? true)
-    ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"Commander|Dark Blood|true|Shadow Serpentis|Dread Gurista|Domination Saint|Gurista Distributor|Sentient|Overseer|Spearhead|Dread Guristas|Estamel|Vepas|Thon|Kaikka|True Sansha|Chelm|Vizan|Selynne|Brokara|Dark Blood|Draclira|Ahremen|Raysere|Tairei|Cormack|Setele|Tuvan|Brynn|Domination|Tobias|Gotan|Hakim|Mizuro")) //Battleship
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"core\s|corpatis|centus|alvus|pith\s|corpus|gist\s")) //Battleship
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelatis|centatis|alvatis|pithatis|corpatis|gistatis|apostle")) //Battlecruiser
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelum|centum|alvum|pithum|corpum|gistum|prophet")) //Cruiser
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"corelior|centior|alvior|pithior|corpior|gistior")) //Destroyer
+    ?.OrderBy(entry => entry?.Name?.RegexMatchSuccessIgnoreCase(@"coreli|centi|alvi|pithi|corpii|gistii|cleric|engraver")) //Frigate
+//    ?.OrderBy(entry => entry?.DistanceMax ?? int.MaxValue)
     .ToArray();
 DroneViewEntryGroup DronesInBayListEntry =>
     WindowDrones?.ListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(Entry => null != Entry?.Caption?.Text?.RegexMatchIfSuccess(@"Drones in bay", RegexOptions.IgnoreCase));
@@ -663,9 +712,10 @@ void Undock()
     {
         Sanderling.MouseClickLeft(Measurement?.WindowStation?.FirstOrDefault()?.UndockButton);
         Host.Log("waiting for undocking to complete.");
-        Host.Delay(8000);
+        Host.Delay(4826);
     }
-    Host.Delay(4444);
+    Sanderling.KeyboardPressCombined(new[]{ VirtualKeyCode.LCONTROL, VirtualKeyCode.SPACE});
+    Host.Delay(8444);
     Sanderling.InvalidateMeasurement();
 }
 void ModuleMeasureAllTooltip()
@@ -825,11 +875,14 @@ logoutgame = LogoutGame;
 	if (LogoutGame<0) 
 	{	
 	logoutme = true;
-		Host.Log("logoutgame " + logoutme + " ");
+		Host.Log("logoutgame, time elapsed " + logoutme + " ");
 	}
 }
 bool MeasurementEmergencyWarpOutEnter =>
-    !(Measurement?.IsDocked ?? false) && !(EmergencyWarpOutHitpointPercent < ArmorHpPercent);
+    !(Measurement?.IsDocked ?? false) && (!(EmergencyWarpOutHitpointPercent < ArmorHpPercent)  || ((0 < ListRatOverviewEntry?.Length) && (listOverviewEntryFriends?.Length > 0) && (listOverviewEntryFriends?.FirstOrDefault()?.DistanceMax < 50)));
+//  !(Measurement?.IsDocked ?? false) && (logoutme == true || !(EmergencyWarpOutHitpointPercent < ArmorHpPercent)  || ((0 < ListRatOverviewEntry?.Length) && (listOverviewEntryFriends?.Length > 0) && (listOverviewEntryFriends?.FirstOrDefault()?.DistanceMax < 50)));
+
+
 void RetreatUpdate()
 {
     RetreatReasonTemporary = (RetreatOnNeutralOrHostileInLocal && hostileOrNeutralsInLocal)
@@ -841,7 +894,7 @@ void RetreatUpdate()
     Sanderling.InvalidateMeasurement();
     if (!MeasurementEmergencyWarpOutEnter)
         return;
-    RetreatReasonPermanent = "They messed my Armor hp or session is expired??";
+    RetreatReasonPermanent = "They messed my Armor hp, I am bumped or session is expired??";
 }
 void UpdateLocationRecord()
 {
@@ -979,6 +1032,21 @@ void OffloadCountUpdate()
         ++OffloadCount;
     LastCheckOreHoldFillPercent = OreHoldFillPercentSynced;
 }
+void ReviewSettings()
+{
+    Host.Log("Review Settings: ");
+    Host.Log("- retreat on neutrals :  " + RetreatOnNeutralOrHostileInLocal + " ; ");
+        Host.Log("- ratting asteroids :  " + RattingAsteroids + " ; ");
+            Host.Log("- ratting anomaly :  " + RattingAnomaly + " ; ");
+                Host.Log("- anomaly name to take:  " + AnomalyToTake + " ; ");
+                    Host.Log("- next DT (Eve Time) :  " + eveNextServerDT.ToString(" dd/MM/yyyy hh:mm:ss")+ " (-1 min); ");
+                        Host.Log("- closer logout(d:h:m) :  " + TimeSpan.FromMinutes(logoutgame).ToString(@"dd\:hh\:mm")+ " , taken in account when you finish a site (or change settings); ");
+                            Host.Log("- bookmark home: " + RetreatBookmark + " ; ");
+                                Host.Log("- offload limit :  " + LimitOffloadCount + " ; ");
+                                    Host.Log("- delay undock min(max) :  " + MinimDelayUndock + "(" + MaximDelayUndock + " ); ");
+                                    Host.Log("  End of review.");
+}
+
 bool AnomalySuitableGeneral(MemoryStruct.IListEntry scanResult) =>
     scanResult?.CellValueFromColumnHeader(AnomalyToTakeColumnHeader)?.RegexMatchSuccessIgnoreCase(AnomalyToTake) ?? false;
 bool ActuallyAnomaly(MemoryStruct.IListEntry scanResult) =>
