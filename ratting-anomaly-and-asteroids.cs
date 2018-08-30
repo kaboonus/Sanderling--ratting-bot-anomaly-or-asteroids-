@@ -1,10 +1,9 @@
 /*V 1.1.02 and last(unless bugs) This bot ratting anomaly and/or asteroids; warp to asteroids at 0km and anomaly at 50, take the loot (or not, by ship type). Planning time by session or by time before DT, logout at the end of first timespan and stop bot. Protection from bumping 
 
 fixs:
-- because there are a lot of settings,  now when you are docked, you will have an review of principals settings
-- click open cargo only once
-- click on dock only once on retreat from reds
-- now when you dock, you get in mainstep. There was situations ( after too many dockings) when even if the position was actualized, he stay in first loop( also this happens because the first loop and entire script is more complicated now).
+havens - solved
+tethering -solved
+*both in tests
 GUIDE: ( and you have example at each variable in settings)
  fill in the values:
  -retreat from neutrals 
@@ -146,6 +145,8 @@ if(Measurement?.WindowOther != null)
     CloseWindowOther();
 if(Measurement?.WindowTelecom != null)
     CloseWindowTelecom();
+if (Tethering)
+StopArmorRepairer();
 if (Measurement?.IsDocked ?? false)
     MainStep();
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
@@ -264,7 +265,7 @@ Func<object> MainStep()
         }
 
     }
-//	ModuleMeasureAllTooltip();
+//	ModuleMeasureAllTooltip(); //if you want again an measurement, uncomment
 	if (ActivateHardener)
 		ActivateHardenerExecute();
 	if (ActivateOmni)	
@@ -281,6 +282,7 @@ void CloseWindowTelecom()
 {
     var WindowTelecom = Measurement?.WindowTelecom?.FirstOrDefault(w => (w?.Caption.RegexMatchSuccessIgnoreCase("Information") ?? false));
     var CloseButton = WindowTelecom?.ButtonText?.FirstOrDefault(text => text.Text.RegexMatchSuccessIgnoreCase("Close"));
+    var HavenTelecom = Measurement?.WindowTelecom?.FirstOrDefault()?.LabelText?.FirstOrDefault(text => (text?.Text.RegexMatchSuccessIgnoreCase("Ship Computer") ?? false));
     if (CloseButton != null)
         Sanderling.MouseClickLeft(CloseButton);
 }
@@ -321,6 +323,7 @@ void DroneReturnToBay()
     //Sanderling.MouseClickLeft(Menu?.FirstOrDefault()?.EntryFirstMatchingRegexPattern("return.*bay", RegexOptions.IgnoreCase));
      Sanderling.KeyboardPressCombined(new[]{ targetLockedKeyCode, VirtualKeyCode.VK_R });//if you like 
 }
+var NoMoreRats = false;
 Func<object> DefenseStep()
 {
     var NPCtargheted = Measurement?.Target?.Length;
@@ -389,7 +392,7 @@ Func<object> DefenseStep()
         }
         else if (EWarSelected == null)
         { Sanderling.MouseClickLeft(EWarToAttack?.FirstOrDefault()); }
-        else
+        else if ( null != EWarSelected && droneInLocalSpaceIdle)
         {
             //Host.Log("drones change to ewar target"); // it was for debug
             Sanderling.KeyboardPress(attackDrones);
@@ -400,14 +403,22 @@ Func<object> DefenseStep()
     {
 	StopAfterburner();
 	DroneEnsureInBay();
+        NoMoreRats = true;
     }
     return DefenseStep;
 }
 var SiteFinished = false;
 Func<object> InBeltMineStep()
 {
-    if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length>0 ) && 0 < ListRatOverviewEntry?.Length && ReadyForManeuver )
-	{   
+    if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length > 0 ) && 0 < ListRatOverviewEntry?.Length && ReadyForManeuver )
+	{            
+        if (  ListCelestialToAvoid?.Length > 0)
+	    	{
+	            Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
+	            Host.Log("Gas Haven, better run!!");
+	            ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "warp");
+	        }
+	
 		if (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit)
    	    {
 		Host.Log("Presence of friends on site! I'm doing you a favor and ignore this anomaly and a second favor to take another one(anomaly)");
@@ -416,7 +427,7 @@ Func<object> InBeltMineStep()
 		}
 	}
     if ((ReadyForManeuver) && (Measurement?.ShipUi?.Indication?.ManeuverType != ShipManeuverTypeEnum.Orbit) && (0 < ListRatOverviewEntry?.Length))
-    {
+   {
         Orbitkeyboard();
         if (DefenseEnter)
         {
@@ -424,7 +435,7 @@ Func<object> InBeltMineStep()
         }
     }
     EnsureWindowInventoryOpen();
-        if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck?.Length && (ReadyForManeuver))
+        if ((!OreHoldFilledForOffload) && 0 == ListRatOverviewEntry?.Length && 0 < listOverviewCommanderWreck?.Length && ReadyForManeuver)
 	{
         if(!(listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 16000))
             StopAfterburner();
@@ -434,8 +445,17 @@ Func<object> InBeltMineStep()
         LootingCargo();
   
 	}
-    else if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length)
+    else if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) && 0 == ListRatOverviewEntry?.Length && ReadyForManeuver)
  	{
+        if (AnomalyToTake == "haven" && 0 == ListRatOverviewEntry?.Length && NoMoreRats == false && 0 < ListCelestialObjects?.Length)
+            {
+            Host.Log("I'm in Heaven, waiting my rats :d :))");
+                while( 0 == ListRatOverviewEntry?.Length)
+                {
+                Host.Delay(1111);
+                    return InBeltMineStep;
+                }
+            }
         Host.Log("Im coolest! Site finished! "); 
 		SiteFinished = true;	
         return MainStep;
@@ -565,6 +585,8 @@ DroneViewEntryGroup DronesInSpaceListEntry =>
     WindowDrones?.ListView?.Entry?.OfType<DroneViewEntryGroup>()?.FirstOrDefault(Entry => null != Entry?.Caption?.Text?.RegexMatchIfSuccess(@"Drones in Local Space", RegexOptions.IgnoreCase));
 int? DronesInSpaceCount => DronesInSpaceListEntry?.Caption?.Text?.AsDroneLabel()?.Status?.TryParseInt();
 int? DronesInBayCount => DronesInBayListEntry?.Caption?.Text?.AsDroneLabel()?.Status?.TryParseInt();
+public bool Tethering =>
+    Measurement?.ShipUi?.EWarElement?.Any(EwarElement => (EwarElement?.EWarType).RegexMatchSuccess("tethering")) ?? false;
 public bool ReadyForManeuverNot =>
     Measurement?.ShipUi?.Indication?.LabelText?.Any(indicationLabel =>
         (indicationLabel?.Text).RegexMatchSuccessIgnoreCase("warp|docking")) ?? false;
@@ -970,8 +992,11 @@ Func<object> TakeAnomaly()
         ClickMenuEntryOnMenuRoot(UndesiredAnomaly, "Ignore Result");
         return TakeAnomaly;
     }
-    if (null == scanResultCombatSite)
-        Host.Log(" Hubble: no more anomalies! If you dont like the asteroids then admire the Space. ");
+      if (null == scanResultCombatSite && !Tethering)
+    {
+        Host.Log(" Hubble: no more anomalies! If you dont like the asteroids then admire the Space from a tethering zone. ");
+	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "0 m|approach");
+    }
     if ((null != scanResultCombatSite) && (null == UndesiredAnomaly))
     {
         Sanderling.MouseClickRight(scanResultCombatSite);
@@ -993,7 +1018,8 @@ Func<object> TakeAnomaly()
 			var menuResultWarpDestination = Measurement?.Menu?.ToList() ? [1].Entry.ToArray();
 			Host.Log(" Hooray, warping to anomaly  ");
 			ClickMenuEntryOnMenuRoot(menuResultWarpDestination[4], "within 50 km");
-			if (probeScannerWindow != null)
+                NoMoreRats = false;
+            if (probeScannerWindow != null)
 			Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
 			}
 		}
