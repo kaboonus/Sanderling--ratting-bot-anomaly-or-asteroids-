@@ -5,7 +5,7 @@ Download the latest release of Sanderling from https://github.com/Arcitectus/San
 fixs/adds:
 >add save bookmark site; now you go back to same site until you finish him and also until there are no wrecks
 >added ship range max ( in km, the script do the calcs). If the distance to first rat is > range, then will start to spin around him
-(-) because of same rares circumstances who stuck the ship without doing anything, I deactivated the "one push" function for "open cargo".
+(-) because of same rares circumstances who stuck the ship withoud doing anything, I deactivated the "one push" function for "open cargo".
 (+) changes in timers calculation
 ignore rats further than 120km (configurable)
 warp at distance configurable from anomalies and asteroids( copy paste the string)
@@ -135,7 +135,7 @@ var attackDrones = VirtualKeyCode.VK_F;// if you changed the default key
 var EnterOffloadOreHoldFillPercent = 97;//	percentage of ore hold fill level at which to enter the offload process and warp home.
 const string StatusStringFromDroneEntryTextRegexPattern = @"\((.*)\)";
 static public string StatusStringFromDroneEntryText(this string droneEntryText) => droneEntryText?.RegexMatchIfSuccess(StatusStringFromDroneEntryTextRegexPattern)?.Groups[1]?.Value?.RemoveXmlTag()?.Trim();
-var startSession = DateTime.Now; // your local time, just for show
+var startSession = DateTime.Now; // your local time, hust for show
 var playSession = DateTime.UtcNow.AddHours(hoursToSession).AddMinutes(minutesToSession);
 var dateAndTime = DateTime.UtcNow;
 Host.Log("UTC start at:  " +dateAndTime.ToString(" dd/MM/yyyy HH:mm:ss")+ " .");
@@ -152,7 +152,7 @@ Host.Log(" >  eveSafeDT : " +eveSafeDT.ToString(" dd/MM/yyyy HH:mm")+ " .");
  //just some calcs
 var MaxDistanceToRats = maxDistanceToRats*1000;
 var ShipRangeMax = shipRangerMax*1000;
-
+ //Host.Log(" max distance " +MaxDistanceToRats+ " .");
  //just some conditionals, 
 int j=0;
 if (WarpToBeltDistance == "Within 0 m")
@@ -230,7 +230,7 @@ if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
      }
 	}
 	Host.Log("               Tactical retreat,  reason  : " + RetreatReason + ".");
-	//Console.Beep(500, 200);// he will beep a lot higher
+	//Console.Beep(500, 200);// he will beep a lot
     Console.Beep(369, 125);// this beeps are  better
 	StopAfterburner();
 	ActivateArmorRepairerExecute();
@@ -593,7 +593,7 @@ var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
     if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) 
         && LookingAtStars && !Tethering)
  	{
-        if (AnomalyToTake == "haven" && 0 == ListRatOverviewEntry?.Length && NoMoreRats == false && 0 < ListCelestialObjects?.Length)
+        if (AnomalyToTake == "haven|Haven" && 0 == ListRatOverviewEntry?.Length && NoMoreRats == false && 0 < ListCelestialObjects?.Length)
             {
                 Host.Log("               I'm in Heaven, waiting my rats :d :))");
                 while( 0 == ListRatOverviewEntry?.Length)
@@ -614,7 +614,7 @@ var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
 }
 void WreckLoot()
 { 
-  if  (listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 10)
+  if  (listOverviewCommanderWreck?.FirstOrDefault()?.DistanceMax > 80)
  ClickMenuEntryOnMenuRoot(listOverviewCommanderWreck?.FirstOrDefault(), "open cargo");
 }
 void LootingCargo ()
@@ -1417,3 +1417,4 @@ bool IsNeutralOrEnemy(IChatParticipantEntry participantEntry) =>
      new[] { "good standing", "excellent standing", "Pilot is in your (fleet|corporation|alliance)", "Pilot is an ally in one or more of your wars", }
      .Any(goodStandingText =>
         flagIcon?.HintText?.RegexMatchSuccessIgnoreCase(goodStandingText) ?? false)) ?? false);
+        
