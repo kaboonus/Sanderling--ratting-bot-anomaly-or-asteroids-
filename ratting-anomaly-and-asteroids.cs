@@ -341,13 +341,13 @@ Func<object> MainStep()
                            Host.Log("               Refreshing news: I'm ready for rats");
 			if (ReadyForManeuver)
             {
-                /* 
-                if (OreHoldFilledForOffload)
-                {
-                    ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
-                    return MainStep;
-                }
-                 */
+                if (Tethering)
+                {while (HulHpPercent < 100 ||ArmorHpPercent < 100  ||ShieldHpPercent < 100 || !Tethering )
+                        {
+                        Host.Log("               Luke > I try Master Yoda, ... I try!");
+                        Host.Delay(5823);
+
+                        }}
 				if ((!OreHoldFilledForOffload) && (0 <= ListRatOverviewEntry?.Length || listOverviewCommanderWreck?.Length > 0)
 					 && !Tethering)
 				return InBeltMineStep;
@@ -593,7 +593,7 @@ var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
     if (( OreHoldFilledForOffload || 0 == listOverviewCommanderWreck?.Length ) 
         && LookingAtStars && !Tethering)
  	{
-        if (AnomalyToTake == "haven|Haven" && 0 == ListRatOverviewEntry?.Length && NoMoreRats == false && 0 < ListCelestialObjects?.Length)
+        if ((AnomalyToTake == "haven"|| AnomalyToTake == "Haven") && 0 == ListRatOverviewEntry?.Length && NoMoreRats == false && 0 < ListCelestialObjects?.Length)
             {
                 Host.Log("               I'm in Heaven, waiting my rats :d :))");
                 while( 0 == ListRatOverviewEntry?.Length)
