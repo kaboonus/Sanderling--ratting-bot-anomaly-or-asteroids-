@@ -568,10 +568,10 @@ public bool NoRatsOnGrid => 0 == ListRatOverviewEntry?.Length || ListRatOverview
 public bool LookingAtStars => NoRatsOnGrid && ReadyForManeuver;
 var SiteFinished = false;
 Func<object> InBeltMineStep()
-{
+{var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
         if (probeScannerWindow == null)
         Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
-var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
+
  if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length > 0 ) 
  && ReadyToBattle)
 	{ 
