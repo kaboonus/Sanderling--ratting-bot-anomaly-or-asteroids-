@@ -1,4 +1,4 @@
-/*V 1.1.2 This bot ratting anomaly and/or asteroids;It use tethering zone, warp distance configurable from settings, take the loot (or not, by ship type). Planning time by session or by time before DT, logout at the end of first timespan and stop bot. Protection from bumping 
+/*RAAB1.1.2 This bot ratting anomaly and/or asteroids;It use tethering zone, warp distance configurable from settings, take the loot (or not, by ship type). Planning time by session or by time before DT, logout at the end of first timespan and stop bot. Protection from bumping 
 Latest release of Sanderling can load scripts from web so the bot will be with default settings (what I use at the momment, so review your settings)
 Download the latest release of Sanderling from https://github.com/Arcitectus/Sanderling/releases
 
@@ -63,6 +63,7 @@ using BotSharp.ToScript.Extension;
 using Parse = Sanderling.Parse;
 using MemoryStruct = Sanderling.Interface.MemoryStruct;
 //	begin of configuration section ->
+string VersionScript = "RAAB 1v3";
 var RetreatOnNeutralOrHostileInLocal =true;   // true or false :warp to RetreatBookmark when a neutral or hostile is visible in local.
 var RattingAnomaly = true;	// true or false:	when this is set to true, you take anomaly
 var RattingAsteroids = false;	// true or false:	when this is set to true, you take asteroids
@@ -219,21 +220,31 @@ if (Measurement?.IsDocked ?? false)
     MainStep();
 if(0 < RetreatReason?.Length && !(Measurement?.IsDocked ?? false))
 {
-	if (listOverviewDreadCheck?.Length > 0)
-    {	
-        	Host.Log("               I'm a chicken and I'm run from dread");
-        if (RattingAsteroids)
-     {
-        StopAfterburner();
-        ActivateArmorRepairerExecute();
-        InitiateWarpToMiningSite();
-     }
-	}
-	Host.Log("               Tactical retreat,  reason  : " + RetreatReason + ".");
-	//Console.Beep(500, 200);// he will beep a lot
-    Console.Beep(369, 125);// this beeps are  better
+        Console.Beep(369, 125);// this beeps are  better
+        DroneReturnToBay();
 	StopAfterburner();
 	ActivateArmorRepairerExecute();
+    if (null !=RetreatReasonDread)
+    {	
+            var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
+            if (probeScannerWindow == null)
+                Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
+            var scanActuallyAnomaly = probeScannerWindow?.ScanResultView?.Entry?.FirstOrDefault(ActuallyAnomaly);
+                Host.Log("               I'm a chicken and I'm run from dread");
+                deleteBookmark();
+            if (null != scanActuallyAnomaly)
+            {  
+                ClickMenuEntryOnMenuRoot(scanActuallyAnomaly, "Ignore Result");      
+            }
+        if (RattingAsteroids)
+        {
+            StopAfterburner();
+            ActivateArmorRepairerExecute();
+            InitiateWarpToMiningSite();
+        }
+	}
+	Host.Log("               Tactical retreat,  reason  : " + RetreatReason + ".");
+
 	 if (Measurement?.ShipUi?.Indication?.ManeuverType == ShipManeuverTypeEnum.Orbit)
 	{
 	 ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "align");
@@ -286,6 +297,11 @@ bool OreHoldFilledForOffload => Math.Max(0, Math.Min(100, EnterOffloadOreHoldFil
 
 Func<object> MainStep()
 {
+        while (ReadyForManeuverNot)
+    {
+        Host.Delay(2111);
+    return MainStep;
+    }
      if (Measurement?.IsDocked ?? false)
     {	 
         while ( K>0)
@@ -336,6 +352,11 @@ Func<object> MainStep()
     	if (ActivateOmni)	
 	    	ActivateOmniExecute();
                Host.Log("               Refreshing news: I'm ready for rats");
+        if (OreHoldFilledForOffload)
+            {
+            ClickMenuEntryOnPatternMenuRoot(Measurement?.InfoPanelCurrentSystem?.ListSurroundingsButton, UnloadBookmark, "dock");
+            return MainStep;
+            }
         if (0 == DronesInSpaceCount  &&  NoRatsOnGrid)
         {
                            Host.Log("               Refreshing news: I'm ready for rats");
@@ -344,7 +365,7 @@ Func<object> MainStep()
                 if (Tethering)
                 {while (HulHpPercent < 100 ||ArmorHpPercent < 100  ||ShieldHpPercent < 100 || !Tethering )
                         {
-                        Host.Log("               Luke > I try Master Yoda, ... I try!");
+                        Host.Log("               Luke > I try Master Yoda, ... I try ... to refill my HP !");
                         Host.Delay(5823);
 
                         }}
@@ -456,6 +477,10 @@ var NoMoreRats = false;
 
 Func<object> DefenseStep()
 {
+        if (!ReadyForManeuver)
+        return MainStep;
+    if (Tethering)
+        return MainStep;
     var NPCtargheted = Measurement?.Target?.Length;
     var shouldAttackTarget = ListRatOverviewEntry?.Any(entry => entry?.MainIconIsRed ?? false) ?? false;
     var targetSelected = Measurement?.Target?.FirstOrDefault(target => target?.IsSelected ?? false);
@@ -920,10 +945,13 @@ void ModuleMeasureAllTooltip()
 	while( (armorRapairCount < ArmorRepairsCount) || (afterburnersCount <  AfterburnersCount)
 			|| (hardenersCount <  HardenersCount)|| (omniCount <  OmniCount)	)
 	{
-		if(Sanderling.MemoryMeasurementParsed?.Value?.IsDocked ?? false)
+        if(Sanderling.MemoryMeasurementParsed?.Value?.IsDocked ?? false)
 			break;
-		foreach(var NextModule in Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule)
+		for (int i = 0; i < Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.Count(); ++i)
 		{
+            var NextModule = Sanderling.MemoryMeasurementAccu?.Value?.ShipUiModule?.ElementAtOrDefault(i);
+   			if(!ReadyForManeuver)
+				break;
 			if(null == NextModule)
 				break;
 			Host.Log("               R2D2 : recording your modules");
@@ -948,7 +976,7 @@ void ActivateHardenerExecute()
      var SubsetModuleToToggle =
         SubsetModuleHardener
         ?.Where(module => !(module?.RampActive ?? false));
-    if ( SubsetModuleHardener.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -960,7 +988,7 @@ void ActivateArmorRepairerExecute()
     var SubsetModuleToToggle =
         SubsetModuleArmorRepairer
         ?.Where(module => !(module?.RampActive ?? false));
-    if ( SubsetModuleArmorRepairer.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -972,7 +1000,7 @@ void StopArmorRepairer()
     var SubsetModuleToToggle =
         SubsetModuleArmorRepairer
         ?.Where(module => (module?.RampActive ?? false));
-    if ( SubsetModuleArmorRepairer.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -995,7 +1023,7 @@ void ActivateAfterburnerExecute()
     var SubsetModuleToToggle =
         SubsetModuleAfterburner
         ?.Where(module => !(module?.RampActive ?? false));
-    if ( SubsetModuleAfterburner.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -1007,7 +1035,7 @@ void StopAfterburner()
     var SubsetModuleToToggle =
         SubsetModuleAfterburner
         ?.Where(module => (module?.RampActive ?? false));
-    if ( SubsetModuleAfterburner.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
     {
 		ModuleToggle(Module); 
@@ -1021,7 +1049,7 @@ void ActivateOmniExecute()
     var SubsetModuleToToggle =
         SubsetModuleOmni
         ?.Where(module => !(module?.RampActive ?? false));
-    if ( SubsetModuleOmni.Count()>0)
+    
     foreach (var Module in SubsetModuleToToggle.EmptyIfNull())
         ModuleToggle(Module);
 }
@@ -1300,7 +1328,7 @@ void OffloadCountUpdate()
 }
 void ReviewSettings()
 {
-Host.Log("                >>> Settings Review: ");
+Host.Log("                >>> Settings Review  bot " + VersionScript + "");
 Host.Log("                - Start (UTC) :  " + dateAndTime.ToString(" dd/MM/yyyy HH:mm:ss")+ " (-1 min); ");
 Host.Log("                - retreat on neutrals :  " + RetreatOnNeutralOrHostileInLocal + " ; ");
     Host.Log("                - ratting asteroids :  " + RattingAsteroids + " ; ");
