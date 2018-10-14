@@ -569,11 +569,12 @@ public bool LookingAtStars => NoRatsOnGrid && ReadyForManeuver;
 var SiteFinished = false;
 Func<object> InBeltMineStep()
 {
+        if (probeScannerWindow == null)
+        Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
 var probeScannerWindow = Measurement?.WindowProbeScanner?.FirstOrDefault();
  if (RattingAnomaly && (0 < listOverviewEntryFriends?.Length || ListCelestialToAvoid?.Length > 0 ) 
  && ReadyToBattle)
-	{     if (probeScannerWindow == null)
-        Sanderling.KeyboardPressCombined(new[] { VirtualKeyCode.LMENU, VirtualKeyCode.VK_P });
+	{ 
         if (  ListCelestialToAvoid?.Length > 0)
 	    	{
 	            Host.Log("               Gas Haven, better run!!");
