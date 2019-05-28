@@ -905,7 +905,8 @@ void Undock()
 {
     while (Measurement?.IsDocked ?? true)
     {
-        Sanderling.MouseClickLeft(Measurement?.WindowStation?.FirstOrDefault()?.UndockButton);
+        Sanderling.MouseClickLeft(Measurement?.WindowStation?.FirstOrDefault()?.ButtonText?.FirstOrDefault(undock =>undock?.Text?.RegexMatchSuccessIgnoreCase("undock")??false  ));
+
         Host.Log("             Master Yoda> When you Undock , Feel the Force Luke,... Feel the Force!");
         Host.Delay(8826);
     }
